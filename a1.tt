@@ -1,0 +1,40 @@
+gfile: [ <line>+ ]
+
+line: a=<NUMBER> <'\n'> # a -> <number>.parser
+
+NUMBER: '+'?# '-'? [0-9]+
+
+endgrammar
+
+let freqdiffs = 'input.txt' -> readfile -> numbers.file
+
+templates sum
+  <[]>
+    { sum: 0, rest: $it} -> $templates
+
+  <{sum:,rest:<[1]>}>
+     $(it.sum + it.rest(1))
+
+  <{sum:,rest:<[2..]>}>
+     { sum: $(it.sum + it.rest(1)), rest: $it.rest(2..*)} -> $templates
+endtemplates
+
+freqdiffs -> sum -> stdout
+
+templates findrepeat
+  <[]>
+    $let seen = (0 -> (<set>.new))
+    { diffs: $it, i: 0, sum: 0, seen: $seen} -> $templates
+
+  <{}>
+    $let i = (it.i % it.diffs.*) + 1
+    $let newsum = it.sum + it.diffs(i)
+    $if (newsum -> it.seen.contains)
+      $newsum
+    $else
+      { i: $i, sum: $newsum, seen: $(newsum -> it.seen)} -> $it -> $templates
+endtemplates
+
+freqdiffs -> findrepeat -> stdout
+
+
