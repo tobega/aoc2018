@@ -1,4 +1,6 @@
-gfile: [ <line>+ ]
+grammar numbers
+
+file: [ <line>+ ]
 
 line: a=<NUMBER> <'\n'> # a -> <number>.parser
 
@@ -29,6 +31,7 @@ templates findrepeat
   <{}>
     $let i = (it.i % it.diffs.*) + 1
     $let newsum = it.sum + it.diffs(i)
+## not entirely happy with the if thingy here
     $if (newsum -> it.seen.contains)
       $newsum
     $else

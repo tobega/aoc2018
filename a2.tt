@@ -1,0 +1,72 @@
+grammar tags
+
+file: [ <TAG>+ ]
+
+TAG: <[a-z]+>
+
+LB: <'\n'> -> skip
+
+endgrammar
+
+let tags = stdin -> tags.file
+
+templates twosAndThrees
+  <[]>
+    [ $it.. -> $templates ]
+
+  <string>
+    { two: 0, three: 0, c: $it.chars(1), count: 0, ne: [], rest: $it.chars(2..*) } -> $templates
+
+# ouch, using <> for matches doesn't work well with comparison. How to compare values?
+#  <{rest:<it.* > 0>
+  <{rest:<[1..*]>}>
+# Better than $if?
+    $it.rest(1) -> (
+# why doesn't it change here? Maybe it should? And $templates? Handy that it doesn't change, though
+       <$it.c>
+         { count: $it.count + 1, rest: $it.rest(2..*) } -> $it -> $templates
+
+# How about creating objects in subexpressions? Do dereferences need $? e.g. inside $()?
+       <*>
+         { ne: $([it.ne, [it.rest(1)]] -> concat), rest: $it.rest(2..*) } -> $it -> $templates
+    )
+
+# Before below because of precedence? Top down?
+  <{rest:<[0]>, ne:<[0]>, count:<0>}>
+    { two: $it.two, three: $it.three }        
+
+  <{rest:<[0]>}>
+    $it.count -> (
+      <2>
+        { two: 1, count: 0, rest: $it.ne, ne: []} -> $it -> $templates
+
+      <3>
+        { three: 1, count: 0, rest: $it.ne, ne: []} -> $it -> $templates
+
+   )
+endtemplates
+
+# trying to make this general for all key-value pairs in object
+templates sum
+  <[]>
+    { result: $it(1), rest: $it(2..*) }
+
+  <{rest:<[1..*]}>
+    $let next = $it.rest(1)
+    $let summed = $next.. -> (collector = it)(
+      <(=key):(=value)<number>>
+        result: ({ $key: $(value + it.result.$key) } -> $it.result) -> collector
+    ).collector
+# Did that just work?
+    { rest: $it.rest(2..*) } -> $it -> $templates
+
+  <*>
+    $it.result
+endtemplates
+
+#solution to part 1, phew!!!
+
+tags -> twosAndThrees -> sum -> ($it.two * $it.three) -> stdout
+
+
+    

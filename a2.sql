@@ -47,3 +47,5 @@ order by position;
 
 select * from commons c join tags t on c.id1 = t.id and length(t.tag) - length(c.common) = 1;
 
+drop database a2;
+
