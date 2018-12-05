@@ -5,7 +5,7 @@ create or replace table raw_entries (
   entry varchar(50) not null
 );
 
-load data local infile '/home/setorgan/aoc2018/a4test.txt'
+load data local infile '/home/setorgan/aoc2018/a4.txt'
 into table raw_entries (entry)
 ;
 
@@ -22,6 +22,7 @@ select regexp_substr(entry, '\\[\\K\\d\\d\\d\\d-\\d\\d-\\d\\d \\d\\d:\\d\\d') ti
 ) s order by time
 ;
 
+-- how safe is it to rely on @g here?
 create or replace table naps as
 select guard, fell_asleep, woke,
  time_to_sec(timediff(woke, fell_asleep))/60 nap_minutes from (
@@ -29,7 +30,7 @@ with t as (
 select time, note, regexp_substr(note, 'Guard #\\K\\d+') guard,
   (note = 'falls asleep') is_fall_asleep,
   (note = 'wakes up') is_wake
-from entries
+from entries order by time
 ) select time, note, is_fall_asleep, is_wake,
   @g:=case when length(guard) = 0 then @g else guard end guard,
   case when is_fall_asleep then time else LAG(time) over (order by time) end fell_asleep,
@@ -51,15 +52,23 @@ create or replace table longest_sleeper as
    order by sleepiness desc limit 1) sg on naps.guard = sg.guard
 ;
 
+insert into longest_sleeper
+select 0, 0, 60, occasions, guard from longest_sleeper where i = 1;
+
 with recursive overlaps as (
-select 1 n, l.i, sleeping, waking, guard from longest_sleeper l
-where l.i = 1
+  select 1 n, 0 k, 0 i, sleeping, waking, guard from longest_sleeper l
+    where i = 0
 union
-  select (1 + o.n), l.i, greatest(l.sleeping, o.sleeping), least(l.waking, o.waking), l.guard
+  select (1 + o.n),
+  case when l.i > o.i then (1 + o.k) else o.k end,
+  greatest(l.i, o.i),
+  greatest(l.sleeping, o.sleeping),
+  least(l.waking, o.waking),
+  l.guard
   from longest_sleeper l join overlaps o on
-    l.i = o.i + 1
+    l.i <= o.n and o.n <= (select max(i) from longest_sleeper)
+  where l.sleeping >= o.sleeping and l.sleeping < o.waking or o.sleeping >= l.sleeping and o.sleeping < l.waking
 )
-select (guard * sleeping) from overlaps
-where waking > sleeping
-order by n desc limit 1;
+select  (guard * sleeping) from overlaps
+order by k desc limit 1;
 
