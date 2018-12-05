@@ -1,0 +1,10 @@
+grammar claim_file
+
+file: [ <claim>+ ]
+
+claim: { (<'#'> -> skip) id:<INT> (<' @ '> -> skip)
+ left:<INT> (<','> -> skip) top:<INT> (<': '> -> skip)
+ width:<INT> (<'x'> -> skip) height: <INT> (<'\n'?> -> skip) }
+
+endgrammar
+
