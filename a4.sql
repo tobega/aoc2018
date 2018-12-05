@@ -24,7 +24,9 @@ select regexp_substr(entry, '\\[\\K\\d\\d\\d\\d-\\d\\d-\\d\\d \\d\\d:\\d\\d') ti
 
 -- how safe is it to rely on @g here?
 create or replace table naps as
-select guard, fell_asleep, woke,
+select guard,
+ time_to_sec(timediff(time(fell_asleep), '00:00:00'))/60 fell_asleep,
+ time_to_sec(timediff(time(woke), '00:00:00'))/60 woke,
  time_to_sec(timediff(woke, fell_asleep))/60 nap_minutes from (
 with t as (
 select time, note, regexp_substr(note, 'Guard #\\K\\d+') guard,
@@ -38,12 +40,13 @@ from entries order by time
 from t join (select @g := 0) g order by time
 ) q where woke is not null;
 
+-- part 1
 create sequence i;
 
 create or replace table longest_sleeper as
   select nextval(i) i,
-  time_to_sec(timediff(time(fell_asleep), '00:00:00'))/60 sleeping,
-  time_to_sec(timediff(time(woke), '00:00:00'))/60 waking,
+  fell_asleep sleeping,
+  woke waking,
   occasions, sg.guard
   from naps join
    (select guard, occasions from
@@ -71,4 +74,32 @@ union
 )
 select  (guard * sleeping) from overlaps
 order by k desc limit 1;
+
+-- part 2
+
+create or replace table sleepers as
+select guard, fell_asleep sleeping, woke waking, count(*) over (partition by guard order by guard rows unbounded preceding) i from naps;
+
+insert into sleepers
+select distinct(guard), 0, 60, 0 from naps;
+
+with recursive overlaps as (
+  select 1 n, 0 k, 0 i, sleeping, waking, guard from sleepers
+    where i = 0
+union
+  select (1 + o.n),
+  case when l.i > o.i then (1 + o.k) else o.k end,
+  greatest(l.i, o.i),
+  greatest(l.sleeping, o.sleeping),
+  least(l.waking, o.waking),
+  l.guard
+  from sleepers l join overlaps o on
+    l.guard = o.guard and
+    l.i <= o.n and o.n <= (select max(i) from sleepers)
+  where l.sleeping >= o.sleeping and l.sleeping < o.waking or o.sleeping >= l.sleeping and o.sleeping < l.waking
+)
+select (guard * sleeping) from overlaps
+order by k desc limit 1;
+
+drop database a4;
 
