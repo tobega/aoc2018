@@ -57,7 +57,7 @@ group by asleep, guard;
 -- part 1
 select (guard * asleep) from sleep_patterns
 where guard = (select guard from (
-  select guard, sum(occasions) total from sleep_patterns group by guard) t
+  select guard, sum(nap_minutes) total from naps group by guard) t
   order by total desc limit 1)
 order by occasions desc limit 1;
 

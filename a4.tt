@@ -1,0 +1,35 @@
+grammar log
+
+file: [ <record>+ ]
+
+record: { time: (<'\['>) <ISO_DATE_TIME> (<'] '>), note: <TO_LINE_END> }
+
+ISO_DATE_TIME: <'\d\d\d\d-\d\d-\d\d \d\d:\d\d(:\d\d)?'> -> <DateTime>.parse
+
+TO_LINE_END: <'[^\n]'*> (<'\n'>)
+
+endgrammar
+
+templates concat
+  [ $it... -> $templates ]
+
+  <[]>
+    $it...
+
+  <*>
+    $it
+endtemplates
+
+# How would we load a parameter, like a custom comparator? Use a new method returning a templates object?
+templates bubblesort
+  $let templates dragHighest
+    [ $it[2..]... -> loop{ elem: $it[1] }(
+        $it?<..$elem>( $it )?<*>( $elem (elem: $it -> $loop))
+    )
+  endtemplates
+# How to represent the length property? .* or special |array| or just .length?
+  0..($it.*-1) -> loop{ arr: $it }(
+    arr: ([ ($arr[1..-$it] -> dragHighest), $arr[-$it..] ] -> concat) -> $loop
+  )
+endtemplates
+
