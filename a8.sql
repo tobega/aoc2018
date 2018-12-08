@@ -126,6 +126,7 @@ where id > 0
 window w as (partition by id order by next rows between unbounded preceding and unbounded following)
 ;
 
+-- part 1
 with recursive mv as (
 select
   1 n,
@@ -133,7 +134,7 @@ select
   regexp_replace(metadata, '\\A\\d+,?', '') mm
 from nodes
 where length(metadata) > 0
-union
+union all
 select
   n + 1,
   cast(regexp_substr(mm, '\\d+') as unsigned integer) val,
