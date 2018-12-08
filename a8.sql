@@ -8,7 +8,7 @@ create or replace table nums (
 
 create sequence s;
 
-load data local infile '/home/setorgan/aoc2018/a8.txt'
+load data local infile '/home/setorgan/aoc2018/a8test.txt'
 into table nums
 lines terminated by ' '
 (@i)
@@ -130,6 +130,23 @@ window w as (partition by id order by next rows between unbounded preceding and 
 with recursive mv as (
 select
   1 n,
+  cast(regexp_substr(metadata, '\\d+') as unsigned integer) val,
+  regexp_replace(metadata, '\\A\\d+,?', '') mm
+from nodes
+where length(metadata) > 0
+union all
+select
+  n + 1,
+  cast(regexp_substr(mm, '\\d+') as unsigned integer) val,
+  regexp_replace(mm, '\\A\\d+,?', '') mm
+from mv where length(mm) > 0
+) select sum(val) from mv;
+
+-- part 2
+with recursive mv as (
+select
+  id,
+  parent,
   cast(regexp_substr(metadata, '\\d+') as unsigned integer) val,
   regexp_replace(metadata, '\\A\\d+,?', '') mm
 from nodes

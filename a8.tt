@@ -1,0 +1,44 @@
+grammar nodes
+  node: { (nc=<INT>) (WS) (nm=<INT>) (WS) children:[ <node>[nc] ], metadata:[ <INT>[nm] ] }
+endgrammar
+
+let root = stdin -> nodes.node
+
+#part 1
+
+templates sum
+  $it -> loop{sum: 0}( (sum: $sum + $it) -> $loop)
+endtemplates
+
+templates flatten
+  [ $it -> $templates ]
+
+  <[]>
+    $it.. -> $templates
+
+  <{}>
+    $it.. -> $templates
+
+  <*:(value=<*>)>
+    $value -> $templates
+
+  <*>
+    $it
+endtemplates
+
+$root -> flatten -> sum -> stdout
+
+#part 2
+
+templates nodeValues
+  [ $it -> $templates ]
+
+  <{children:[]}>
+    $it.metadata...
+
+  <{children:[1..]}>
+    $it.children[$it.metadata...]... -> $templates
+endtemplates
+
+$root -> nodeValues -> sum -> stdout
+
