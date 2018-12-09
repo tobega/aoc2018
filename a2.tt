@@ -9,7 +9,7 @@ endgrammar
 let tags = stdin -> tags_file.file
 
 templates twosAndThrees
-  [ ...$it -> $templates ]
+  [ $it... -> $templates ]
 
   <string>
     { two: 0, three: 0, c: $it.chars(1), count: 0, ne: [], rest: $it.chars(2..*) } -> $templates
@@ -41,7 +41,7 @@ templates sum
     $let summed = ...$next -> loop{collector: $it}(
       <(=key):(=value)<number>>
         { collector: {result: ({ $key: $(value + it.result.$key) } -> $it.result)} -> $loop
-    )(collector)
+    )($loop.collector)
     { result: $summed, rest: $it.rest(2..*) } -> $it -> $templates
 
   <*>
@@ -58,8 +58,8 @@ templates onediff
   { tag: $it(1), rest: $it(2..) } -> $templates
 
   <{rest:<[1..]>}>
-    $let sameletters = $it.tag.chars -> [i](other = $it.rest(1).chars)(
-      <$other[$i]>
+    $let sameletters = $it.tag.chars -> [i]{other: $it.rest(1).chars}(
+      <$other($i)>
         $it
     )
     $sameletters ?<[($it.tag.* - 1)]>(

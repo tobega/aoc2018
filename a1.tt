@@ -2,7 +2,7 @@ grammar numbers
 
 file: [ <line>+ ]
 
-line: a=<NUMBER> <'\n'> # a -> <number>.parser
+line: <NUMBER> (<'\n'>)
 
 NUMBER: '+'?# '-'? [0-9]+
 
@@ -31,11 +31,10 @@ templates findrepeat
   <{}>
     $let i = (it.i % it.diffs.*) + 1
     $let newsum = it.sum + it.diffs(i)
-## not entirely happy with the if thingy here
-    $if (newsum -> it.seen.contains)
-      $newsum
-    $else
+    ($newsum -> it.seen.contains) ?<true>($newsum)
+    ?<false>(
       { i: $i, sum: $newsum, seen: $(newsum -> it.seen)} -> $it -> $templates
+    )
 endtemplates
 
 freqdiffs -> findrepeat -> stdout

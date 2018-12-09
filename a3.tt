@@ -2,9 +2,20 @@ grammar claim_file
 
 file: [ <claim>+ ]
 
-claim: { (<'#'> -> skip) id:<INT> (<' @ '> -> skip)
- left:<INT> (<','> -> skip) top:<INT> (<': '> -> skip)
- width:<INT> (<'x'> -> skip) height: <INT> (<'\n'?> -> skip) }
+claim: { (<'#'>) id:<INT> (<' @ '>)
+ left:<INT> (<','>) top:<INT> (<': '>)
+ width:<INT> (<'x'>) height: <INT> (<'\n'?>) }
 
 endgrammar
+
+templates<[{top:<number>,left:<number>,bottom:<number>,right:<number>}]> boundingbox{left:, top:, bottom:, right:}
+  { left: $it(1).left, top: $it(1).top, bottom: ($it(1).top + $it(1).height), right: ($it(1).left + $it(1).width) } -> $boundingbox
+  $it(2..) -> $templates
+
+  <*>
+    $it.left ?<..$boundingbox.left> ({left: $it.left} -> $boundingbox)
+    $it.top ?<..$boundingbox.top> ({top: $it.top} -> $boundingbox)
+    ($it.left + $it.width) ?<$boundingbox.right..> ({right: $it.left + $it.width} -> $boundingbox)
+    ($it.top + $it.height) ?<$boundingbox.bottom..> ({bottom: $it.top + $it.height} -> $boundingbox)
+endtemplates
 
