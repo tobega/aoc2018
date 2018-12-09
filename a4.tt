@@ -45,6 +45,6 @@ nap: { sleep: (<{time: (m=<*>), note:'falls asleep'}>)($m.minute),
        wake: (<{time: (m=<*>), note:'wakes up'}>)($m.minute) }
 endgrammar
 
-let shifts = 'a4.txt' -> readfile -> log.file -> bubblesort -> collate.shifts
+let shifts = 'a4.txt' -> readfile -> log.file -> bubblesort... -> collate.shifts
 
 
