@@ -7,7 +7,7 @@ let root = stdin -> nodes.node
 #part 1
 
 templates sum
-  $it -> loop{sum: 0}( (sum: $sum + $it) -> $loop)
+  $it -> loop{sum: 0}( {sum: $sum + $it} -> $loop)
 endtemplates
 
 templates flatten
@@ -33,7 +33,7 @@ $root -> flatten -> sum -> stdout
 templates nodeValues
   [ $it -> $templates ]
 
-  <{children:[]}>
+  <{children:[0]}>
     $it.metadata...
 
   <{children:[1..]}>
