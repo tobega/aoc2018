@@ -36,10 +36,15 @@ endtemplates
 
 grammar<{}> collate
 
+shifts: [ <shift>+ ]
+
 # Should string matchers always be regex? Or do we need special notation for regex?
 shift: { guard: (<{note:'Guard #(\d+).*'(g=$1)}>)($g), naps: [ <nap>+ ] }
 
 nap: { sleep: (<{time: (m=<*>), note:'falls asleep'}>)($m.minute),
        wake: (<{time: (m=<*>), note:'wakes up'}>)($m.minute) }
 endgrammar
+
+let shifts = 'a4.txt' -> readfile -> log.file -> bubblesort -> collate.shifts
+
 
