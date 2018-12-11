@@ -10,6 +10,7 @@ templates sum
   $it -> loop{sum: 0}( {sum: $sum + $it} -> $loop)($loop.sum)
 endtemplates
 
+# probably the rules going deeper should be the default so we just need the precursor and the <number> rule?
 templates flatten
   [ $it -> $templates ]
 
@@ -19,10 +20,10 @@ templates flatten
   <{}>
     $it.. -> $templates
 
-  <*:(value=<*>)>
+  <*:value=<*>>
     $value -> $templates
 
-  <*>
+  <number>
     $it
 endtemplates
 

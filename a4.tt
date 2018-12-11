@@ -27,10 +27,9 @@ templates bubblesort
         $it?<..$elem>( $it )?<*>( $loop (elem: $it -> $loop))($loop.elem)
     )
   endtemplates
-
 # How to represent the length property? .* or special |array| or just .length?
   0..($it.*-1) -> loop{ arr: $it }(
-    arr: ([ ($arr[1..-$it] -> dragHighest), $arr[-$it..] ] -> concat) -> $loop
+    arr: ([ ($arr(1..-$it) -> dragHighest), $arr(-$it!..) ] -> concat) -> $loop
   )($loop.arr)
 endtemplates
 
@@ -41,10 +40,10 @@ shifts: [ <shift>+ ]
 # Should string matchers always be regex? Or do we need special notation for regex?
 shift: { guard: (<{note:'Guard #(\d+).*'(g=$1)}>)($g), naps: [ <nap>+ ] }
 
-nap: { sleep: (<{time: (m=<*>), note:'falls asleep'}>)($m.minute),
-       wake: (<{time: (m=<*>), note:'wakes up'}>)($m.minute) }
+nap: { sleep: (<{time: ms=<*>, note:'falls asleep'}>) #($ms.minute),
+       wake: (<{time: mw=<*>, note:'wakes up'}>) #($mw.minute) }
 endgrammar
 
-let shifts = 'a4.txt' -> readfile -> log.file -> bubblesort... -> collate.shifts
+let shifts = 'a4.txt' -> readfile -> log.file -> (bubblesort)... -> collate.shifts
 
 
