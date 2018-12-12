@@ -8,7 +8,7 @@ ISO_DATE_TIME: <'\d\d\d\d-\d\d-\d\d \d\d:\d\d(:\d\d)?'> -> <DateTime>.parse
 
 TO_LINE_END: <'[^\n]'*> (<'\n'>)
 
-endgrammar
+end log
 
 templates concat
   [ $it... -> $templates ]
@@ -18,7 +18,7 @@ templates concat
 
   <*>
     $it
-endtemplates
+end concat
 
 # How would we load a parameter, like a custom comparator? Use a new method returning a templates object?
 templates bubblesort
@@ -26,12 +26,12 @@ templates bubblesort
     [ $it[2..]... -> loop{ elem: $it[1] }(
         $it?<..$elem>( $it )?<*>( $loop (elem: $it -> $loop))($loop.elem)
     )
-  endtemplates
+  end dragHighest
 # How to represent the length property? .* or special |array| or just .length?
   0..($it.*-1) -> loop{ arr: $it }(
     arr: ([ ($arr(1..-$it) -> dragHighest), $arr(-$it!..) ] -> concat) -> $loop
   )($loop.arr)
-endtemplates
+end bubblesort
 
 grammar<{}> collate
 
@@ -42,7 +42,7 @@ shift: { guard: (<{note:'Guard #(\d+).*'(g=$1)}>)($g), naps: [ <nap>+ ] }
 
 nap: { sleep: (<{time: ms=<*>, note:'falls asleep'}>) #($ms.minute),
        wake: (<{time: mw=<*>, note:'wakes up'}>) #($mw.minute) }
-endgrammar
+end collate
 
 let shifts = 'a4.txt' -> readfile -> log.file -> (bubblesort)... -> collate.shifts
 

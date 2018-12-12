@@ -6,7 +6,7 @@ line: <NUMBER> (<'\n'>)
 
 NUMBER: '+'?# '-'? [0-9]+
 
-endgrammar
+end numbers
 
 let freqdiffs = 'input.txt' -> readfile -> numbers.file
 
@@ -19,7 +19,7 @@ templates sum
 
   <{sum:,rest:<[2..]>}>
      { sum: $(it.sum + it.rest(1)), rest: $it.rest(2..*)} -> $templates
-endtemplates
+end sum
 
 freqdiffs -> sum -> stdout
 
@@ -35,7 +35,7 @@ templates findrepeat
     ?<false>(
       { i: $i, sum: $newsum, seen: $(newsum -> it.seen)} -> $it -> $templates
     )
-endtemplates
+end findrepeat
 
 freqdiffs -> findrepeat -> stdout
 

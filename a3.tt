@@ -6,5 +6,5 @@ claim: { (<'#'>) id:<INT> (<' @ '>)
  left:<INT> (<','>) top:<INT> (<': '>)
  width:<INT> (<'x'>) height: <INT> (<'\n'?>) }
 
-endgrammar
+end claim_file
 

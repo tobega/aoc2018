@@ -1,0 +1,19 @@
+grammar plants
+  data: ('initial state: ') { state: <STATE>, rules: <rules> }
+
+  STATE: [ <'[.#]+'>.chars[i] -> f{}($it?<'#'>($i)) ]
+
+  rules: [ [ <rule>+ ] -> sort{ comp: f{}($it.a.num - $it.b.num)}... -> f{}($it.result) ]
+
+  rule: { num: <RULE_NUM>, (' => ') result: <IS_PLANT> }
+
+  RULE_NUM: <'[.#]+'>.chars -> loop{rule: 0}(
+    <'#'>
+      { rule: ($loop.rule << 1) + 1 } -> $loop
+
+    <'.'>
+      { rule: $loop.rule << 1 } -> $loop)($loop.rule)
+
+  IS_PLANT: '[.#]' -> ?=<'#'>
+end plants
+

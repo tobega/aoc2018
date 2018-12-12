@@ -4,7 +4,7 @@ file: [ <TAG>+ ]
 
 TAG: <[a-z]+> (<'\n'> -> skip)
 
-endgrammar
+end tags_file
 
 let tags = stdin -> tags_file.file
 
@@ -30,7 +30,7 @@ templates twosAndThrees
     ) ?<3> (
         { three: 1, count: 0, rest: $it.ne, ne: []} -> $it -> $templates
     )
-endtemplates
+end twosAndThrees
 
 # trying to make this general for all key-value pairs in object
 templates sum
@@ -46,7 +46,7 @@ templates sum
 
   <*>
     $it.result
-endtemplates
+end sum
 
 #solution to part 1, phew!!!
 
@@ -65,7 +65,7 @@ templates onediff
     $sameletters ?<[($it.tag.* - 1)]>(
       $sameletters
     ) ?<*>({ tag: $it.rest(1), rest: $it.rest(2..) } -> $templates)
-endtemplates
+end onediff
 
 tags -> onediff -> stdout
     
