@@ -24,7 +24,7 @@ end concat
 # How would we load a parameter, like a custom comparator? Use a new method returning a templates object?
 templates bubblesort
   $let templates dragHighest
-    [ $it[2..]... -> loop{ elem: $it[1] }(
+    [ $it(2..)... -> loop{ elem: $it(1) }(
         $it?<..$elem>( $it )?<*>( $loop (elem: $it -> $loop))($loop.elem)
     )
   end dragHighest

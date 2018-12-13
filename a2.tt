@@ -38,7 +38,7 @@ templates sum
 
   <{rest:<[1..*]}>
     $let next = $it.rest(1)
-    $let summed = ...$next -> loop{collector: $it}(
+    $let summed = $next... -> loop{collector: $it}(
       <key=<*>:value=<number>>
         { collector: {result: ({ $key: $(value + it.result.$key) } -> $it.result)} -> $loop
     )($loop.collector)

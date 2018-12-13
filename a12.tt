@@ -7,7 +7,7 @@ grammar plants
 
   rule: { num: <RULE_NUM>, (' => ') result: <IS_PLANT> }
 
-  RULE_NUM: <'[.#]+'>.chars -> loop{rule: 0}(
+  RULE_NUM: <'[.#]+'>.chars... -> loop{rule: 0}(
     <'#'>
       { rule: ($loop.rule << 1) + 1 } -> $loop
 
@@ -17,10 +17,49 @@ grammar plants
   IS_PLANT: '[.#]' -> ?=<'#'>
 end plants
 
+templates<[*]> reduce(f: <templates<{a:, b:}>)
+  $it(2..)... -> loop{sum: $it(1)}(
+    { sum: ({a: $loop.sum, b: $it} -> $f) } -> $loop
+  )($loop.sum)
+end reduce
+
 processor Game
   state: <[*]<number>>
   rules: <[32]<bool>>
 
+  source evolve
+    templates checkAndShift
+      { newState: $rules($it.locale) ?<true> ($it.pos -> $newState) ?<*> ($newState),
+              pos: $it.pos + 1, locale: (($it.locale << 1) & 0x1f) } -> $it
+    end checkAndShift
+    { pos: state(1) - 2, i: 1, locale: 0, newState: [] } -> $templates
 
+    <{pos: <$state($it.i)-2>}>
+      { locale: $it.locale | 1, i: $it.i + 1 } -> $it -> $templates
+
+    <{i: <..$state.*>}>
+      $it -> checkAndShift -> $templates
+
+    <{locale: <0!..>}>
+      $it -> checkAndShift -> $templates
+
+    <*>
+      state: $it.newstate -> $Game
+   end evolve
+
+   source potSum
+     $state -> reduce(<{a: <number>, b: <number>}> $it.a + $it.b)
+   end potSum
 
 end Game
+
+grammar<string> arglist
+  args: { generations: (<'--generations'|'-g'>) (<'\\d+'> -> <number>.parse), file: <'.+'> }
+end args
+
+main(args: <[*]<string>>)
+  let input = args -> arglist.args
+  let game = input.file -> readfile -> plants.data -> <Game>.new
+  [1..input.generations](game.evolve)
+  game.potSum -> stdout
+end main
