@@ -17,3 +17,10 @@ grammar plants
   IS_PLANT: '[.#]' -> ?=<'#'>
 end plants
 
+processor Game
+  state: <[*]<number>>
+  rules: <[32]<bool>>
+
+
+
+end Game

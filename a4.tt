@@ -10,10 +10,11 @@ TO_LINE_END: <'[^\n]'*> (<'\n'>)
 
 end log
 
+# removes the second array level, i.e. [ [1,2], [3, [4,5]], 6] becomes [1,2,3,[4,5],6]
 templates concat
   [ $it... -> $templates ]
 
-  <[]>
+  <[..]>
     $it...
 
   <*>
@@ -33,7 +34,7 @@ templates bubblesort
   )($loop.arr)
 end bubblesort
 
-grammar<{}> collate
+grammar<{*}> collate
 
 shifts: [ <shift>+ ]
 
