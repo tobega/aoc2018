@@ -54,7 +54,9 @@ processor Game
 end Game
 
 grammar<string> arglist
-  args: { generations: (<'--generations'|'-g'>) (<'\\d+'> -> <number>.parse), file: <'.+'> }
+  args: { <generations>? file: <'.+'> }
+
+  generations: generations: (<'--generations'|'-g'>) (<'\\d+'> -> <number>.parse)
 end args
 
 main(args: <[*]<string>>)
