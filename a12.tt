@@ -24,10 +24,10 @@ templates<[*]> reduce(f: <templates<{a:, b:}>)
 end reduce
 
 processor Game
-  state: <[*]<number>>
+  mut state: <[*]<number>>
   rules: <[32]<bool>>
 
-  source evolve
+  source evolve<void>
     templates checkAndShift
       { newState: $rules($it.locale) ?<true> ($it.pos -> $newState) ?<*> ($newState),
               pos: $it.pos + 1, locale: (($it.locale << 1) & 0x1f) } -> $it
@@ -45,7 +45,7 @@ processor Game
 
     <*>
       state: $it.newstate -> $Game
-   end evolve
+  end evolve
 
    source potSum
      $state -> reduce(<{a: <number>, b: <number>}> $it.a + $it.b)

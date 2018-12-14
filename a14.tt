@@ -1,0 +1,51 @@
+let warmup = '635041'
+
+processor Recipes
+  mut recipes: [3,7]
+  mut elf: 1
+  mut alf: 2
+
+  source concoct<void>
+    $let brew = $recipes(elf) + $recipes(alf)
+    $brew ?<..9> ($brew -> recipes) ?<*> (
+      ($brew ~/ 10) -> recipes
+      ($brew % 10) -> recipes)
+     {elf: $elf + ($recipes($elf) % $recipes.* + 1),
+      alf: $alf + ($recipes($alf) % $recipes.* + 1) } -> $#
+  end concoct
+
+  mut templates<number> extract10After
+    { given: $it } -> extract10After
+    $#templates
+
+    #<{recipes: <..($given+10)>}>
+      $concoct
+      $#templates
+
+    #<*>
+      $recipes($it+1..$it+10)... -> toString -> ''
+  end extract10After
+
+  mut templates<[*]<number>> findCountBefore
+    $it -> $templates
+
+    <$recipes(-$it.*..-1)>
+      $recipes.* - $it.*
+
+    <$recipes(-$it.*-1..-2)>
+      $recipes.* - $it.* - 1
+
+    <*>
+      $concoct
+      $it -> $templates
+  end findCountBefore
+end Recipes
+
+# part 1
+let recipes = <Recipes>.new
+warmup -> <int>.parse -> recipes.extract10After -> stdout
+
+# part 2
+let recipes = <Recipes>.new
+warmup.chars -> <int>.parse -> recipes.findCountBefore -> stdout
+
