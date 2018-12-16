@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 class Grid {
   List<List<Square>> rows = List();
@@ -13,6 +14,13 @@ class Grid {
 
   addRow(List<Square> row) {
     rows.add(row);
+  }
+
+  Grid copy() {
+    Grid c = Grid();
+    rows.forEach((r) => c.addRow(
+        List.of(r.map((s) => s.copy(c)))));
+    return c;
   }
 }
 
@@ -31,9 +39,15 @@ abstract class Square {
     Cavern c = s as Cavern;
     return a.row < c.row || (a.row == c.row && a.col < c.col);
   }
+
+  copy(Grid newGrid);
 }
 
 class Rock extends Square {
+  @override
+  copy(Grid newGrid) {
+    return this;
+  }
 }
 
 class Cavern extends Square {
@@ -56,12 +70,17 @@ class Cavern extends Square {
   String toString() {
     return runtimeType.toString() + '(' + row.toString() + ', ' + col.toString() + '): {' + occupant.runtimeType.toString() + '}';
   }
+
+  @override
+  copy(Grid newGrid) {
+    return Cavern(row, col, newGrid);
+  }
 }
 
 abstract class Being {
   Cavern square;
   int hitPoints = 200;
-  final int attackValue = 3;
+  int attackValue = 3;
 
   Being(this.square);
 
@@ -133,6 +152,8 @@ abstract class Being {
   String toString() {
     return runtimeType.toString() + hitPoints.toString() + ': {' + square.toString() + '}\n';
   }
+
+  Being copy(Grid newGrid);
 }
 
 class Elf extends Being {
@@ -142,6 +163,11 @@ class Elf extends Being {
   Type enemy() {
     return Gnome;
   }
+
+  @override
+  Being copy(Grid newGrid) {
+    return Elf(newGrid.get(square.row, square.col));
+  }
 }
 
 class Gnome extends Being {
@@ -150,6 +176,11 @@ class Gnome extends Being {
   @override
   Type enemy() {
     return Elf;
+  }
+
+  @override
+  Being copy(Grid newGrid) {
+    return Gnome(newGrid.get(square.row, square.col));
   }
 }
 
@@ -180,11 +211,14 @@ void main() {
     }
     grid.addRow(row);
   }
-  beings.forEach((b) => b.square.occupant = b);
-  part1(beings);
+  Grid newGrid = grid.copy();
+  List<Being> copiedBeings = List.of(beings.map((b) => b.copy(newGrid)));
+  part1(copiedBeings);
+  part2(grid, beings);
 }
 
 void part1(List<Being> beings) {
+  beings.forEach((b) => b.square.occupant = b);
   var stillFighting = true;
   var round = 0;
   while (stillFighting) {
@@ -201,4 +235,56 @@ void part1(List<Being> beings) {
   }
   var hitPoints = beings.fold(0, (sum, being) => sum + being.hitPoints);
   stdout.writeln(round.toString() + ' * ' + hitPoints.toString() + ' = ' + (round * hitPoints).toString());
+}
+
+void part2(Grid origGrid, List<Being> origBeings) {
+  int low = 3;
+  int step = 1;
+  int high = 30000;
+  int highScore = -1;
+  while (low + 1 < high) {
+    int next = min(low + step, high);
+    if (next == high) {
+      step = 1;
+      next = low + 1;
+    }
+    Grid grid = origGrid.copy();
+    List<Being> beings = List.of(origBeings.map((b) => b.copy(grid)));
+    beings.forEach((b) => b.attackValue = b.runtimeType == Elf ? next : 3);
+    int score = giveMeVictoryOrDeath(beings);
+    if (score == -1) {
+      low = next;
+      step *= 2;
+    } else {
+      highScore = score;
+      high = next;
+      step = 1;
+    }
+  }
+  stdout.writeln(high.toString() + ' ' + highScore.toString());
+}
+
+int giveMeVictoryOrDeath(List<Being> beings) {
+  beings.forEach((b) => b.square.occupant = b);
+  var stillFighting = true;
+  var round = 0;
+  while (stillFighting) {
+    beings.sort((a,b) => a.square < b.square? -1 : 1);
+    beings.forEach((b) {
+      if (b.hitPoints > 0) {
+        var couldMove = b.takeTurn();
+        if (!couldMove && !beings.any((c) => c.runtimeType == b.enemy() && c.hitPoints > 0))
+          stillFighting = false;
+      }
+    });
+    if (stillFighting) round++;
+    bool elfDied = false;
+    beings = beings.where((b) {
+      elfDied |= (b.hitPoints < 0 && b.runtimeType == Elf);
+      return b.hitPoints > 0;
+    }).toList();
+    if (elfDied) return -1;
+  }
+  var hitPoints = beings.fold(0, (sum, being) => sum + being.hitPoints);
+  return round * hitPoints;
 }
