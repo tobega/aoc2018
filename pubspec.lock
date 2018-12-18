@@ -8,5 +8,12 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.5.1"
+  collection:
+    dependency: "direct main"
+    description:
+      name: collection
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.14.11"
 sdks:
-  dart: ">=1.22.0 <3.0.0"
+  dart: ">=2.0.0-dev.55.0 <3.0.0"
