@@ -29,7 +29,7 @@ processor Game
 
   source evolve<void>
     templates checkAndShift
-      { newState: $rules($it.locale) ?<true> ($it.pos -> $newState) ?<*> ($newState),
+      { newState: $rules($it.locale) ?<true> ($it.pos -> $it.newState) ?<*> ($it.newState),
               pos: $it.pos + 1, locale: (($it.locale << 1) & 0x1f) } -> $it
     end checkAndShift
     { pos: state(1) - 2, i: 1, locale: 0, newState: [] } -> $templates

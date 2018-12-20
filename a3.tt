@@ -1,6 +1,6 @@
 grammar claim_file
 
-file: [ <claim>+ ]
+[ <claim>+ ]
 
 claim: { (<'#'>) id:<INT> (<' @ '>)
  left:<INT> (<','>) top:<INT> (<': '>)

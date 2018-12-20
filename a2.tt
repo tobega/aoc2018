@@ -1,12 +1,12 @@
 grammar tags_file
 
-file: [ <TAG>+ ]
+[ <TAG>+ ]
 
 TAG: <[a-z]+> (<'\n'> -> skip)
 
 end tags_file
 
-let tags = stdin -> tags_file.file
+let tags = stdin -> tags_file
 
 templates twosAndThrees
   [ $it... -> $templates ]

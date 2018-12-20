@@ -1,6 +1,6 @@
 grammar numbers
 
-file: [ <line>+ ]
+[ <line>+ ]
 
 line: <NUMBER> (<'\n'>)
 
@@ -8,7 +8,7 @@ NUMBER: '+'?# '-'? [0-9]+
 
 end numbers
 
-let freqdiffs = 'input.txt' -> readfile -> numbers.file
+let freqdiffs = 'input.txt' -> readfile -> numbers
 
 templates sum
   <[*]>

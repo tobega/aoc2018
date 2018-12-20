@@ -1,0 +1,21 @@
+grammar cave
+  { beings: [] }: { grid: <grid>, beings: $cave.beings }
+
+  grid{ row: 1, col: 1 }: [ <row>+ ]
+
+  row: [ <square>+ ] (<'\n'>) ({ row: $grid.row + 1, col: 1 } -> $grid)
+
+  square: { type: <<rock>|<cavern>>, row: $grid.row, col: $grid.col } ({col: $grid.col + 1} -> $grid)
+
+# Do we have enums?
+  rock: (<'#'>) 'rock'
+
+  cavern: (<'[.GE]'>) 'cavern' <occupant>?
+
+  occupant: (<<gnome>|<elf>>) occupant: $occupant.type ({ type: $occupant.type, row: $grid.row, col: $grid.col} -> $cave.beings)
+
+# Do we have object references? Or match-selection from arrays?
+  gnome: (#<'G'>) ({type: 'gnome'} -> $occupant)
+
+  elf: (#<'E'>) ({type: 'elf'} -> $occupant)
+end cave
