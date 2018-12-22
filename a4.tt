@@ -23,14 +23,19 @@ end concat
 
 templates bubblesort
   $let templates dragHighest
-    [ $it(2..)... -> loop{ elem: $it(1) }(
-        $it?<..$elem>( $it )?<*>( $loop (elem: $it -> $loop))($loop.elem)
-    )
+    { elem: $it(1) } -> $dragHighest
+    [ $it(2..)... -> $templates, $dragHighest.elem ]
+
+    <*>
+        $it ?<..$dragHighest.elem>( $it ) ?<*>( $dragHighest.elem ({elem: $it} -> dragHighest))
   end dragHighest
+  { arr: $it } -> $bubblesort
 # How to represent the length property? .* or special |array| or just .length?
-  0..($it.*-1) -> loop{ arr: $it }(
-    arr: ([ ($arr(1..-$it) -> dragHighest), $arr(-$it!..) ] -> concat) -> $loop
-  )($loop.arr)
+  1..($it.*-2) -> $templates
+  $bubblesort.arr
+
+  <number>
+    { arr: ([ ($arr(1..-$it) -> dragHighest), $arr(-$it!..) ] -> concat) } -> $bubblesort
 end bubblesort
 
 grammar<{*}> collate

@@ -32,25 +32,22 @@ templates twosAndThrees
     )
 end twosAndThrees
 
-# trying to make this general for all key-value pairs in object
-templates sum
-  { result: $it(1), rest: $it(2..*) } -> $templates
+templates sumAllKeyValues
+  { result: $it(1) } -> $sumAllKeyValues
+  $it(2..*) -> $templates
+  $it.result
 
-  <{rest:<[1..*]}>
-    $let next = $it.rest(1)
-    $let summed = $next... -> loop{collector: $it}(
-      <key=<*>:value=<number>>
-        { collector: {result: ({ $key: $(value + it.result.$key) } -> $it.result)} -> $loop
-    )($loop.collector)
-    { result: $summed, rest: $it.rest(2..*) } -> $it -> $templates
+  <[1..]>
+    $it(1)... -> $templates
+    $it(2..*) -> $templates
 
-  <*>
-    $it.result
-end sum
+  <key=<*>:value=<number>>
+    { $key: $(value + it.result.$key) } -> $sumAllKeyValues.result
+end sumAllKeyValues
 
 #solution to part 1, phew!!!
 
-tags -> twosAndThrees -> sum -> ($it.two * $it.three) -> stdout
+tags -> twosAndThrees -> sumAllKeyValues -> ($it.two * $it.three) -> stdout
 
 # part 2
 

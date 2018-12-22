@@ -19,3 +19,29 @@ grammar cave
 
   elf: (#<'E'>) ({type: 'elf'} -> $occupant)
 end cave
+
+stereotype square = <{row:<number>, col:<number>, occupant:<null|'gnome'|'elf'>}
+stereotype being = <{type:<'gnome'|'elf'>, row:<number>, col:<number>, attackValue: <number>, hitPoints: <number>}>
+
+processor Battle
+  mut grid<[*,*]<square>>
+  mut beings<[*]<being>>
+
+  templates enemy
+    $it ?<'elf'>('gnome') ?<'gnome'>('elf'))
+  end enemy
+
+  templates<being> inRange
+    { enemy: ($it.type -> enemy, result: false } -> $inRange
+    grid([$it.row-1, $it.row+1], [$it.col-1, $it.col+])... -> $templates
+
+    <{occupant: <$inRange.enemy>}>
+      { result: true} -> $inRange
+
+    $inRange.result
+  end inRange
+
+  templates<being> findMove
+    $let visited = grid($it.row, $it.col) -> <Set>.new
+    $let atDistance =
+    {visited: <Set>.new, atDistance: <Map>.new}

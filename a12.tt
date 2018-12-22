@@ -7,20 +7,30 @@ grammar plants
 
   rule: { num: <RULE_NUM>, (' => ') result: <IS_PLANT> }
 
-  RULE_NUM: <'[.#]+'>.chars... -> loop{rule: 0}(
-    <'#'>
-      { rule: ($loop.rule << 1) + 1 } -> $loop
-
-    <'.'>
-      { rule: $loop.rule << 1 } -> $loop)($loop.rule)
+  RULE_NUM: <'[.#]+'>.chars -> encodeRule
 
   IS_PLANT: '[.#]' -> ?=<'#'>
 end plants
 
+templates encodeRule
+  {rule: 0}
+  $it... -> $templates
+  $encodeRule.rule
+
+   <'#'>
+     { rule: ($encodeRule.rule << 1) + 1 } -> $encodeRule
+
+   <'.'>
+     { rule: $encodeRule.rule << 1 } -> $encodeRule
+end encodeRule
+
 templates<[*]> reduce(f: <templates<{a:, b:}>)
-  $it(2..)... -> loop{sum: $it(1)}(
-    { sum: ({a: $loop.sum, b: $it} -> $f) } -> $loop
-  )($loop.sum)
+  { result: $it(1) } -> $reduce
+  $it(2..)... -> $templates
+  $reduce.sum
+
+  <*>
+    { result: ({a: $reduce.result, b: $it} -> $f) } -> $reduce
 end reduce
 
 processor Game
@@ -44,7 +54,7 @@ processor Game
       $it -> checkAndShift -> $templates
 
     <*>
-      state: $it.newstate -> $Game
+      {state: $it.newstate} -> $Game
   end evolve
 
    source potSum
