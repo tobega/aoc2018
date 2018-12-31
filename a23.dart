@@ -51,7 +51,7 @@ void part1(List<Nanobot> bots) {
   stdout.writeln(numInRange);
 }
 
-// Resolving the planes defining the "cube" gives a nice set of equations
+// Resolving the planes defining the octahedron gives a nice set of equations
 // 0: x + y + z <= r + a + b + c
 // 1: x + y - z <= r + a + b - c
 // 2: x - y + z <= r + a - b + c
@@ -60,12 +60,17 @@ void part1(List<Nanobot> bots) {
 // 5: - x + y - z <= r - a + b - c
 // 6: - x - y + z <= r - a - b + c
 // 7: - x - y - z <= r - a - b - c
-class Cube {
-  int intersectingCubes;
+class Octahedron {
+  int intersectingBots;
   List<int> constraints = new List(8);
 
-  Cube.around(Nanobot bot) {
-    intersectingCubes = 1;
+  Octahedron.empty() {
+    intersectingBots = 0;
+    constraints = List.generate(8, (i) => 1 << 63 - 1);
+  }
+
+  Octahedron.around(Nanobot bot) {
+    intersectingBots = 1;
     for (int i = 0; i < 8; i++) {
       var abc = [bot.x, bot.y, bot.z];
       var sum = bot.range;
@@ -80,8 +85,8 @@ class Cube {
     }
   }
 
-  Cube.intersect(Cube one, Cube other) {
-    intersectingCubes = one.intersectingCubes + other.intersectingCubes;
+  Octahedron.intersect(Octahedron one, Octahedron other) {
+    intersectingBots = one.intersectingBots + other.intersectingBots;
     for (int i = 0; i < 8; i++) {
       constraints[i] = min(one.constraints[i], other.constraints[i]);
     }
@@ -96,34 +101,34 @@ class Cube {
 }
 
 void part2(List<Nanobot> bots) {
-  List<Cube> feasibleCubes = new List();
-  var largestIntersect = 0;
-  var largest;
-  for (var i = 0; i < bots.length; i++) {
-    var cube = Cube.around(bots[i]);
-    List<Cube> newFeasibleCubes = List();
-//    if (bots.length - i > largestIntersect) {
-//      newFeasibleCubes.add(cube);
-//    }
-    if (feasibleCubes.length == 0) {
-      newFeasibleCubes.add(cube);
-    }
-    for (var prev in feasibleCubes) {
-      if (prev.intersectingCubes + bots.length - i <= largestIntersect) {
-        continue;
+  bots.sort((a, b) => b.range - a.range); // by decreasing range
+  List<Octahedron> cubes = bots.map((n) => Octahedron.around(n)).toList();
+  var largestIntersect = Octahedron.empty();
+  var feasibleChoices = cubes;
+  var remainingFeasibleChoices = List();
+  var currentIntersects = List.of([Octahedron.empty()]);
+  while (feasibleChoices.isNotEmpty) {
+    while (currentIntersects.last.intersectingBots +
+        feasibleChoices.length > largestIntersect.intersectingBots) {
+      var currentIntersect = Octahedron.intersect(
+          currentIntersects.last, feasibleChoices.first);
+      currentIntersects.add(currentIntersect);
+      if (currentIntersect.intersectingBots >
+          largestIntersect.intersectingBots) {
+        largestIntersect = currentIntersect;
       }
-//      newFeasibleCubes.add(prev);
-      var intersect = Cube.intersect(prev, cube);
-      stdout.writeln(' ' + intersect.intersectingCubes.toString() + intersect.constraints.toString());
-      if (intersect.isFeasible()) {
-        newFeasibleCubes.add(intersect);
-        if (intersect.intersectingCubes > largestIntersect) {
-          largestIntersect = intersect.intersectingCubes;
-          largest = intersect;
-        }
-      }
+      remainingFeasibleChoices.add(feasibleChoices.skip(1).toList());
+      feasibleChoices = feasibleChoices.skip(1).where((c) =>
+          Octahedron.intersect(currentIntersect, c).isFeasible()).toList();
     }
-    feasibleCubes = newFeasibleCubes;
+    do {
+      currentIntersects.removeLast();
+      feasibleChoices = remainingFeasibleChoices.isEmpty ? List() : remainingFeasibleChoices.removeLast();
+    } while (feasibleChoices.isEmpty && remainingFeasibleChoices.isNotEmpty);
   }
-  stdout.writeln(' ' + largest.intersectingCubes.toString() + largest.constraints.toString());
+  // Shaky hypothesis: turning the octahedron equations to >= means that the
+  // minimum must be when it is =. But manhattan distance is the sum of absolute
+  // values, so it must be the maximum of all the octahedron >= bounds.
+  var answer = largestIntersect.constraints.map((i) => -i).reduce((a, b) => max(a,b));
+  stdout.writeln(answer);
 }
