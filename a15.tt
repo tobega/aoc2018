@@ -32,13 +32,12 @@ processor Battle
   end enemy
 
   templates<being> inRange
-    { enemy: ($it.type -> enemy, result: false } -> $inRange
+    { enemy: ($it.type -> enemy), result: false } -> $inRange
     grid([$it.row-1, $it.row+1], [$it.col-1, $it.col+])... -> $templates
+    $inRange.result
 
     <{occupant: <$inRange.enemy>}>
-      { result: true} -> $inRange
-
-    $inRange.result
+      { result: true} -> $inRange # Or maybe something like exit?
   end inRange
 
   templates<being> findMove
