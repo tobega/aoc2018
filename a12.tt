@@ -24,7 +24,7 @@ templates encodeRule
      { rule: $encodeRule.rule << 1 } -> $encodeRule
 end encodeRule
 
-templates<[*]> reduce(f: <templates<{a:, b:}>)
+templates<[*]> reduce(f: <templates<{a:, b:}>>)
   { result: $it(1) } -> $reduce
   $it(2..)... -> $templates
   $reduce.sum

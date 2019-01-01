@@ -10,7 +10,7 @@ TO_LINE_END: <'[^\n]'*> (<'\n'>)
 
 end log
 
-# removes the second array level, i.e. [ [1,2], [3, [4,5]], 6] becomes [1,2,3,[4,5],6]
+// removes the second array level, i.e. [ [1,2], [3, [4,5]], 6] becomes [1,2,3,[4,5],6]
 templates concat
   [ $it... -> $templates ]
 
@@ -30,7 +30,7 @@ templates bubblesort
         $it ?<..$dragHighest.elem>( $it ) ?<*>( $dragHighest.elem ({elem: $it} -> dragHighest))
   end dragHighest
   { arr: $it } -> $bubblesort
-# How to represent the length property? .* or special |array| or just .length?
+// How to represent the length property? .* or special |array| or just .length?
   1..($it.*-2) -> $templates
   $bubblesort.arr
 
@@ -42,7 +42,7 @@ grammar<{*}> collate
 
 shifts: [ <shift>+ ]
 
-# Should string matchers always be regex? Or do we need special notation for regex?
+// Should string matchers always be regex? Or do we need special notation for regex?
 shift: { guard: (<{note:'Guard #(\d+).*'(g=$1)}>)($g), naps: [ <nap>+ ] }
 
 nap: { sleep: (<{time: ms=<*>, note:'falls asleep'}>) #($ms.minute),

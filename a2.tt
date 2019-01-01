@@ -41,15 +41,15 @@ templates sumAllKeyValues
     $it(1)... -> $templates
     $it(2..*) -> $templates
 
-  <key=<*>:value=<number>>
+  <key=*:value=<number>>
     { $key: $(value + it.result.$key) } -> $sumAllKeyValues.result
 end sumAllKeyValues
 
-#solution to part 1, phew!!!
+// solution to part 1, phew!!!
 
 tags -> twosAndThrees -> sumAllKeyValues -> ($it.two * $it.three) -> stdout
 
-# part 2
+// part 2
 
 templates onediff
   { tag: $it(1), rest: $it(2..) } -> $templates

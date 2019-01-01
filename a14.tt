@@ -41,11 +41,11 @@ processor Recipes
   end findCountBefore
 end Recipes
 
-# part 1
+// part 1
 let recipes = <Recipes>.new
 warmup -> <int>.parse -> recipes.extract10After -> stdout
 
-# part 2
+// part 2
 let recipes = <Recipes>.new
 warmup.chars -> <int>.parse -> recipes.findCountBefore -> stdout
 

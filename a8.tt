@@ -14,8 +14,8 @@ templates sum
     {sum: $sum.sum + $it} -> $sum
 end sum
 
-# probably the rules going deeper should be the default so we just need the precursor and the <number> rule?
-# removes all array and object wrappings, giving a list of primitives
+// probably the rules going deeper should be the default so we just need the precursor and the <number> rule?
+// removes all array and object wrappings, giving a list of primitives
 templates flatten
   [ $it -> $templates ]
 

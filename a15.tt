@@ -7,20 +7,20 @@ grammar cave
 
   square: { type: <<rock>|<cavern>>, row: $grid.row, col: $grid.col } ({col: $grid.col + 1} -> $grid)
 
-# Do we have enums?
+// Do we have enums?
   rock: (<'#'>) 'rock'
 
   cavern: (<'[.GE]'>) 'cavern' <occupant>?
 
   occupant: (<<gnome>|<elf>>) occupant: $occupant.type ({ type: $occupant.type, row: $grid.row, col: $grid.col} -> $cave.beings)
 
-# Do we have object references? Or match-selection from arrays?
+// Do we have object references? Or match-selection from arrays?
   gnome: (#<'G'>) ({type: 'gnome'} -> $occupant)
 
   elf: (#<'E'>) ({type: 'elf'} -> $occupant)
 end cave
 
-stereotype square = <{row:<number>, col:<number>, occupant:<null|'gnome'|'elf'>}
+stereotype square = <{type: <'rock'|'cavern'>, row:<number>, col:<number>, occupant:<void|'gnome'|'elf'>}
 stereotype being = <{type:<'gnome'|'elf'>, row:<number>, col:<number>, attackValue: <number>, hitPoints: <number>}>
 
 processor Battle
@@ -31,16 +31,61 @@ processor Battle
     $it ?<'elf'>('gnome') ?<'gnome'>('elf'))
   end enemy
 
-  templates<being> inRange
-    { enemy: ($it.type -> enemy), result: false } -> $inRange
-    grid([$it.row-1, $it.row+1], [$it.col-1, $it.col+])... -> $templates
-    $inRange.result
+  templates<square> inRange(enemy: <'gnome'|'elf'>)
+    false -> $inRange
+    $grid($it.row, [$it.col-1, $it.col+1])... -> $templates
+    $grid([$it.row-1, $it.row+1], $it.col)... -> $templates
+    $inRange
 
-    <{occupant: <$inRange.enemy>}>
-      { result: true} -> $inRange # Or maybe something like exit?
+    <{occupant: <$enemy>}>
+      true -> $inRange // Or maybe something like exit or return?
   end inRange
 
-  templates<being> findMove
-    $let visited = grid($it.row, $it.col) -> <Set>.new
-    $let atDistance =
-    {visited: <Set>.new, atDistance: <Map>.new}
+  templates<[<square>]> bestTargetInRange(enemy: <'gnome'|'elf'>)
+    $it... -> $templates
+    $bestTargetInRange
+
+    <?($it -> inRange)>
+      $it.row ?<$bestTargetInRange.row!..>(
+        $bestTargetInRange
+      ) ?<$bestTargetInRange.row> (
+        $it.col ?<$bestTargetInRange.row!..>(
+          $bestTargetInRange
+        ) ?<*> ($it)
+      ) ?<*> ($it) -> $bestTargetInRange
+  end bestTargetInRange
+
+  templates moveEntry(firstMove: <'up'|'left'|'right'|'down'>)
+    <{type: 'cavern', occupant: void}>
+      { key: $it, value: $firstMove }
+  end moveEntry
+
+  templates<{key: <square>, value: <'up'|'left'|'right'|'down'>}> nextMoves
+    $it.value -> $nextMoves
+    // figure out rules for list-indices, may have to send through flatten
+    $grid($it.key.row, [$it.key.col-1, $it.key.col+1])... -> moveEntry($it.value)
+    $grid([$it.key.row-1, $it.row+1], $it.col)... -> moveEntry($it.value)
+
+  }
+
+  source findMove(combattant: <being>)
+    {visited: (grid($combattant.row, $combattant.col) -> <Set>.new),
+        atDistance: <Map>.new
+    } -> $findMove
+    grid($combattant.row - 1, $combattant.col) -> moveEntry('up') -> $findMove.atDistance.put
+    grid($combattant.row, $combattant.col - 1) -> moveEntry('left') -> $findMove.atDistance.put
+    grid($combattant.row, $combattant.col + 1) -> moveEntry('right') -> $findMove.atDistance.put
+    grid($combattant.row + 1, $combattant.col) -> moveEntry('down') -> $findMove.atDistance.put
+    $findMove -> $templates
+
+    <{atDistance: <=target($it.keys -> bestTargetInRange)<square>>}>
+      $it.atDistance.get($target)
+
+    <{atDistance: <?($it.isEmpty)>}>
+      void
+
+    <*>
+      $let nextDistance = <Map>.new
+      $findMove.atDistance.keys -> $findMove.visited.addAll
+      $findMove.atDistance.entries... -> nextMoves -> <?!($it.key -> findMove.visited.contains)>
+        ->
