@@ -6,7 +6,7 @@ end coords
 
 let coordinates = stdin -> coords -> [i]({ id: $i } -> $it($i))
 
-stereotype box = <{left:<number>, top:<number>, bottom:<number>, right:<number>}>
+stereotype box <{left:<number>, top:<number>, bottom:<number>, right:<number>}>
 
 templates<[{x:<number>,y:<number>}]> boundingbox<box>
   { left: $it(1).x, top: $it(1).y, bottom: $it(1).y, right: $it(1).x } -> $boundingbox

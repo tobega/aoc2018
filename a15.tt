@@ -1,7 +1,7 @@
 grammar cave
-  { beings: [] }: { grid: <grid>, beings: $cave.beings }
+  #{ beings: [] }: { grid: <grid>, beings: $cave.beings }
 
-  grid{ row: 1, col: 1 }: [ <row>+ ]
+  grid#{ row: 1, col: 1 }: [ <row>+ ]
 
   row: [ <square>+ ] (<'\n'>) ({ row: $grid.row + 1, col: 1 } -> $grid)
 
@@ -10,82 +10,148 @@ grammar cave
 // Do we have enums?
   rock: (<'#'>) 'rock'
 
-  cavern: (<'[.GE]'>) 'cavern' <occupant>?
+  cavern: ({ code: <'[.GE]'>} -> $cavern) 'cavern' <occupant>?
 
   occupant: (<<gnome>|<elf>>) occupant: $occupant.type ({ type: $occupant.type, row: $grid.row, col: $grid.col} -> $cave.beings)
 
 // Do we have object references? Or match-selection from arrays?
-  gnome: (#<'G'>) ({type: 'gnome'} -> $occupant)
+  gnome: ($cavern.code ?<'G'>) ({type: 'gnome'} -> $occupant)
 
-  elf: (#<'E'>) ({type: 'elf'} -> $occupant)
+  elf: ($cavern.code ?<'E'>) ({type: 'elf'} -> $occupant)
 end cave
 
-stereotype square = <{type: <'rock'|'cavern'>, row:<number>, col:<number>, occupant:<void|'gnome'|'elf'>}
-stereotype being = <{type:<'gnome'|'elf'>, row:<number>, col:<number>, attackValue: <number>, hitPoints: <number>}>
+stereotype square <{type: <'rock'|'cavern'>, row:<number>, col:<number>, occupant:<void|'gnome'|'elf'>}
+stereotype being <{type:<'gnome'|'elf'>, row:<number>, col:<number>, attackValue: <number>, hitPoints: <number>}>
 
-processor Battle
+processor Battleground
   mut grid<[*,*]<square>>
-  mut beings<[*]<being>>
 
   templates enemy
     $it ?<'elf'>('gnome') ?<'gnome'>('elf'))
   end enemy
 
-  templates<square> inRange(enemy: <'gnome'|'elf'>)
+  templates<{row:, col:}> inRange(enemy: <'gnome'|'elf'>)
     false -> $inRange
     $grid($it.row, [$it.col-1, $it.col+1])... -> $templates
     $grid([$it.row-1, $it.row+1], $it.col)... -> $templates
     $inRange
 
-    <{occupant: <$enemy>}>
+    <{occupant: <$enemy>}> // Specifically, void never matches unless explicitly specified
       true -> $inRange // Or maybe something like exit or return?
   end inRange
 
-  templates<[<square>]> bestTargetInRange(enemy: <'gnome'|'elf'>)
+  templates<{a:<square>, b:<square>}> bestSquare
+      <{a: <{row: <$^^.b.row!..>}>}>
+        $b
+        
+      <{a: <{row: <..!$^^.b.row>}>}>
+        $a
+        
+      <{a: <{col: <$^^.b.col!..>}>}>
+        $b
+        
+      <*>
+        $a
+  end bestSquare
+
+  templates<[<square>]> bestSquareInRange(enemy: <'gnome'|'elf'>)
     $it... -> $templates
-    $bestTargetInRange
+    $bestSquareInRange
 
-    <?($it -> inRange)>
-      $it.row ?<$bestTargetInRange.row!..>(
-        $bestTargetInRange
-      ) ?<$bestTargetInRange.row> (
-        $it.col ?<$bestTargetInRange.row!..>(
-          $bestTargetInRange
-        ) ?<*> ($it)
-      ) ?<*> ($it) -> $bestTargetInRange
-  end bestTargetInRange
+    <?($it -> inRange($enemy))>
+      {a: $it, b: $bestSquareInRange} -> bestSquare -> $bestSquareInRange
+  end bestSquareInRange
 
-  templates moveEntry(firstMove: <'up'|'left'|'right'|'down'>)
+  stereotype direction <'up'|'left'|'right'|'down'>
+
+  templates moveEntry(firstMove: <direction>)
     <{type: 'cavern', occupant: void}>
       { key: $it, value: $firstMove }
   end moveEntry
 
-  templates<{key: <square>, value: <'up'|'left'|'right'|'down'>}> nextMoves
+  templates<{key: <square>, value: <direction>}> nextMoves
     $it.value -> $nextMoves
     // figure out rules for list-indices, may have to send through flatten
     $grid($it.key.row, [$it.key.col-1, $it.key.col+1])... -> moveEntry($it.value)
     $grid([$it.key.row-1, $it.row+1], $it.col)... -> moveEntry($it.value)
+  end nextMoves
 
-  }
+  templates<{a:<direction>, b:<direction>}> prioritizedDirection
+    <{*:'up'}>
+      'up'
 
-  source findMove(combattant: <being>)
-    {visited: (grid($combattant.row, $combattant.col) -> <Set>.new),
+    <{*:'left'}>
+      'left'
+
+    <{*:'right'}>
+      'right'
+
+    <*:'down'>
+      'down'
+  end prioritizedDirection
+
+  source findDirectionToMove(combattant: <being>)
+    {visited: ($grid($combattant.row, $combattant.col) -> <Set>.new),
         atDistance: <Map>.new
-    } -> $findMove
-    grid($combattant.row - 1, $combattant.col) -> moveEntry('up') -> $findMove.atDistance.put
-    grid($combattant.row, $combattant.col - 1) -> moveEntry('left') -> $findMove.atDistance.put
-    grid($combattant.row, $combattant.col + 1) -> moveEntry('right') -> $findMove.atDistance.put
-    grid($combattant.row + 1, $combattant.col) -> moveEntry('down') -> $findMove.atDistance.put
-    $findMove -> $templates
+    } -> $findDirectionToMove
+    $grid($combattant.row - 1, $combattant.col) -> moveEntry('up') -> $findDirectionToMove.atDistance.put
+    $grid($combattant.row, $combattant.col - 1) -> moveEntry('left') -> $findDirectionToMove.atDistance.put
+    $grid($combattant.row, $combattant.col + 1) -> moveEntry('right') -> $findDirectionToMove.atDistance.put
+    $grid($combattant.row + 1, $combattant.col) -> moveEntry('down') -> $findDirectionToMove.atDistance.put
+    $findDirectionToMove -> $templates
 
-    <{atDistance: <=target($it.keys -> bestTargetInRange)<square>>}>
-      $it.atDistance.get($target)
+    <{atDistance: <=target($it.keys -> bestSquareInRange($combattant.type -> enemy))<square>>}>
+      $target -> $it.atDistance.get
 
     <{atDistance: <?($it.isEmpty)>}>
       void
 
     <*>
       $let nextDistance = <Map>.new
-      $findMove.atDistance.keys -> $findMove.visited.addAll
-      $findMove.atDistance.entries... -> nextMoves -> <?!($it.key -> findMove.visited.contains)>
-        ->
+      $findDirectionToMove.atDistance.keys -> $findDirectionToMove.visited.addAll
+      $findDirectionToMove.atDistance.entries... -> nextMoves -> <?!($it.key -> findDirectionToMove.visited.contains)>
+        -> { key: $it.key,
+             value: ({a: $it.value, b: ($it.square -> $nextDistance.get)} -> prioritizedDirection)
+           } -> $nextDistance.put // check-then-act race here, should we have an update method on Map? Or do this by 'fold'?
+      {atDistance: $nextDistance} -> $findDirectionToMove
+      $findDirectionToMove -> $templates
+  end findDirectionToMove
+
+  source maybeMove(combattant: <being>)<square|void>
+    $combattant -> inRange ?<false> (findDirectionToMove($combattant) -> $templates)
+
+    <'up'>
+      {dr:-1, dc:0} -> $templates
+
+    <'left'>
+      {dr:0, dc:-1} -> $templates
+
+    <'right'>
+      {dr:0, dc:1} -> $templates
+
+    <'down'>
+      {dr:1, dc:0} -> $templates
+
+    <{dr:,dc:}>
+      {occupant:void} -> $grid($combattant.row, $combattant.col)
+      {occupant: $combattant.type} -> $grid($combattant.row + $it.dr, $combattant.col + $it.dc)
+      $grid($combattant.row + $it.dr, $combattant.col + $it.dc)
+  end maybeMove
+end Battleground
+
+templates copy
+  <[*]>
+    [ $it... -> $templates ]
+
+  <{}>
+    { $it... -> $templates }
+
+  <*:<*>>
+    $it.key: ($it.value -> $templates)
+
+  <*>
+    $it
+end copy
+
+processor part1
+  mut beings<[*]<being>>
