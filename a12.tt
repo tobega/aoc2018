@@ -1,9 +1,9 @@
 grammar plants
   data: ('initial state: ') { state: <STATE>, rules: <rules> }
 
-  STATE: [ <'[.#]+'>.chars[i] -> f{}($it?<'#'>($i)) ]
+  STATE: [ <'[.#]+'>.chars[i] -> (<'#'> $i) ]
 
-  rules: [ [ <rule>+ ] -> sort{ comp: f{}($it.a.num - $it.b.num)}... -> f{}($it.result) ]
+  rules: [ [ <rule>+ ] -> sort(<> $it(1).num - $it(2).num)-> ... -> (<*> $it.result) ]
 
   rule: { num: <RULE_NUM>, (' => ') result: <IS_PLANT> }
 
@@ -24,18 +24,18 @@ templates encodeRule
      { rule: $encodeRule.rule << 1 } -> $encodeRule
 end encodeRule
 
-templates<[*]> reduce(f: <templates<{a:, b:}>>)
+templates<[*]> reduce(f <templates<[2]>>)
   { result: $it(1) } -> $reduce
   $it(2..)... -> $templates
-  $reduce.sum
+  $reduce.result
 
   <*>
-    { result: ({a: $reduce.result, b: $it} -> $f) } -> $reduce
+    { result: ([ reduce.result, $it] -> $f) } -> $reduce
 end reduce
 
 processor Game
-  mut state: <[*]<number>>
-  rules: <[32]<bool>>
+  mut state <[*]<number>>
+  rules <[32]<bool>>
 
   source evolve<void>
     templates checkAndShift
@@ -58,7 +58,7 @@ processor Game
   end evolve
 
    source potSum
-     $state -> reduce(<{a: <number>, b: <number>}> $it.a + $it.b)
+     $state -> reduce(<> $it(1) + $it(2))
    end potSum
 
 end Game

@@ -20,51 +20,57 @@ grammar cave
   elf: ($cavern.code ?<'E'>) ({type: 'elf'} -> $occupant)
 end cave
 
-stereotype square <{type: <'rock'|'cavern'>, row:<number>, col:<number>, occupant:<void|'gnome'|'elf'>}
-stereotype being <{type:<'gnome'|'elf'>, row:<number>, col:<number>, attackValue: <number>, hitPoints: <number>}>
+stereotype position <{row:<number>, col:<number>}>
+stereotype square <position+{type: <'rock'|'cavern'>, occupant:<void|'gnome'|'elf'>}
+stereotype being <position+{type:<'gnome'|'elf'>, attackValue: <number>, hitPoints: <number>}>
+
+templates enemy
+  $it ?<'elf'>('gnome') ?<'gnome'>('elf'))
+end enemy
+
+templates<[2]<position>> bestPosition
+  <[] ?($it(1).row <$it(2).row!..>)>
+    1
+
+  <[] ?($it(1).row <..!$it(2).row>)>
+    -1
+
+  <[] ?($it(1).col <$it(2).col!..>}>}>
+    1
+
+  <*>
+    -1
+end bestPosition
 
 processor Battleground
   mut grid<[*,*]<square>>
 
-  templates enemy
-    $it ?<'elf'>('gnome') ?<'gnome'>('elf'))
-  end enemy
+  templates<position> neighbours
+    [ $grid($it.row, [$it.col-1, $it.col+1])... ,
+      $grid([$it.row-1, $it.row+1], $it.col)... ]
+  end neighbours
 
-  templates<{row:, col:}> inRange(enemy: <'gnome'|'elf'>)
+  templates<{row:, col:}> inRange(enemy <'gnome'|'elf'>)
     false -> $inRange
-    $grid($it.row, [$it.col-1, $it.col+1])... -> $templates
-    $grid([$it.row-1, $it.row+1], $it.col)... -> $templates
+    $it -> neighbours -> $templates
     $inRange
 
     <{occupant: <$enemy>}> // Specifically, void never matches unless explicitly specified
       true -> $inRange // Or maybe something like exit or return?
   end inRange
 
-  templates<{a:<square>, b:<square>}> bestSquare
-      <{a: <{row: <$^^.b.row!..>}>}>
-        $b
-        
-      <{a: <{row: <..!$^^.b.row>}>}>
-        $a
-        
-      <{a: <{col: <$^^.b.col!..>}>}>
-        $b
-        
-      <*>
-        $a
-  end bestSquare
-
-  templates<[<square>]> bestSquareInRange(enemy: <'gnome'|'elf'>)
+  templates<[<square>]> bestSquareInRange(enemy <'gnome'|'elf'>)
     $it... -> $templates
     $bestSquareInRange
 
     <?($it -> inRange($enemy))>
-      {a: $it, b: $bestSquareInRange} -> bestSquare -> $bestSquareInRange
+      $let s = $it
+      [$it, $bestSquareInRange] -> bestPosition -> (<-1> $s -> $bestSquareInRange)
   end bestSquareInRange
 
   stereotype direction <'up'|'left'|'right'|'down'>
 
-  templates moveEntry(firstMove: <direction>)
+  templates moveEntry(firstMove <direction>)
     <{type: 'cavern', occupant: void}>
       { key: $it, value: $firstMove }
   end moveEntry
@@ -117,8 +123,10 @@ processor Battleground
       $findDirectionToMove -> $templates
   end findDirectionToMove
 
-  source maybeMove(combattant: <being>)<square|void>
-    $combattant -> inRange ?<false> (findDirectionToMove($combattant) -> $templates)
+  templates<being> maybeMove <being>
+    $it -> $maybeMove
+    $it -> inRange ?<false> (findDirectionToMove($maybeMove) -> $templates)
+    $maybeMove
 
     <'up'>
       {dr:-1, dc:0} -> $templates
@@ -135,7 +143,7 @@ processor Battleground
     <{dr:,dc:}>
       {occupant:void} -> $grid($combattant.row, $combattant.col)
       {occupant: $combattant.type} -> $grid($combattant.row + $it.dr, $combattant.col + $it.dc)
-      $grid($combattant.row + $it.dr, $combattant.col + $it.dc)
+      $grid($combattant.row + $it.dr, $combattant.col + $it.dc) -> $maybeMove
   end maybeMove
 end Battleground
 
@@ -153,5 +161,58 @@ templates copy
     $it
 end copy
 
-processor part1
-  mut beings<[*]<being>>
+processor Battle
+  mut battleground <Battleground>
+  mut beings [<being>]
+
+  templates setCombatValues
+    {attackValue: 3, hitPoints: 200} -> $it
+    $it
+  end setCombatValues
+
+  templates stillFighting
+    {elfAlive: false, gnomeAlive: false} -> $stillFighting
+    $it... -> $templates
+    $stillFighting.elfAlive && $stillFighting.gnomeAlive
+
+    <{type: 'gnome', hitPoints: <1..>}>
+      {gnomeAlive: true} -> $stillFighting
+
+    <{type: 'elf', hitPoints: <1..>}>
+      {elfAlive: true} -> $stillFighting
+  end stillFighting
+
+  sink<position> strike(attack <number>)
+    $let pos = $it
+    $let index = $beings -> [i](<$pos> $i)
+    ($beings($index).hitPoints - $attack) -> $beings($index)
+  end strike
+
+  sink takeTurn
+    $beings($it) -> battleground.maybeMove -> $beings($it)
+    $beings($it) -> battleground.neighbours -> filter(inRange($beings($it).type -> enemy))
+      -> sort(bestPosition) -> strike($beings($it).attackValue)
+  end takeTurn
+
+  source run
+    [ $beings... -> setCombatValues ] -> $beings
+    {round: -1, stillFighting: true} -> $run
+    $run -> $templates
+
+    <?($it.stillFighting)>
+      {round: $run.round + 1} -> $run
+      1..$beings.* -> (<?($beings($it) <{hitPoints: <1..>}>)> $it)
+        -> sort(<> $beings([$it]) -> bestPosition) -> takeTurn
+      { stillFighting: ($beings -> stillFighting)} -> $run
+      $run -> $templates
+
+    <>
+      [ $beings... -> (<{hitPoints: <1..>}> $it) ] -> fold(0, <> $it.result + $it.item.hitPoints) -> (<> $it * $run.round)
+  end run
+end Battle
+
+// part 1
+let data = stdin -> cave
+// How do we do new?
+let battle = <Battle>.new(<Battleground.new($data.grid), $data.beings)
+battle.run -> stdout

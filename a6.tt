@@ -4,7 +4,7 @@ grammar coords
   coord: { x: <'\d+'> (<', '>) y: <'\d+'> }
 end coords
 
-let coordinates = stdin -> coords -> [i]({ id: $i } -> $it($i))
+let coordinates = stdin -> coords -> [i]({ id: $i } -> $it)
 
 stereotype box <{left:<number>, top:<number>, bottom:<number>, right:<number>}>
 
