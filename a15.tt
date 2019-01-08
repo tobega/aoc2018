@@ -164,23 +164,8 @@ end copy
 processor Battle
   mut battleground <Battleground>
   mut beings [<being>]
-
   templates setCombatValues
-    {attackValue: 3, hitPoints: 200} -> $it
-    $it
-  end setCombatValues
-
-  templates stillFighting
-    {elfAlive: false, gnomeAlive: false} -> $stillFighting
-    $it... -> $templates
-    $stillFighting.elfAlive && $stillFighting.gnomeAlive
-
-    <{type: 'gnome', hitPoints: <1..>}>
-      {gnomeAlive: true} -> $stillFighting
-
-    <{type: 'elf', hitPoints: <1..>}>
-      {elfAlive: true} -> $stillFighting
-  end stillFighting
+  templates isFightDecided
 
   sink<position> strike(attack <number>)
     $let pos = $it
@@ -195,24 +180,81 @@ processor Battle
   end takeTurn
 
   source run
-    [ $beings... -> setCombatValues ] -> $beings
-    {round: -1, stillFighting: true} -> $run
+    $beings -> [i]($beings(i) -> setCombatValues -> $beings(i))
+    {round: -1, stillFighting: 0} -> $run
     $run -> $templates
 
-    <?($it.stillFighting)>
+    <{stillFighting: <0>}>
       {round: $run.round + 1} -> $run
       1..$beings.* -> (<?($beings($it) <{hitPoints: <1..>}>)> $it)
         -> sort(<> $beings([$it]) -> bestPosition) -> takeTurn
-      { stillFighting: ($beings -> stillFighting)} -> $run
+      { stillFighting: ($beings -> isFightDecided)} -> $run
       $run -> $templates
 
     <>
-      [ $beings... -> (<{hitPoints: <1..>}> $it) ] -> fold(0, <> $it.result + $it.item.hitPoints) -> (<> $it * $run.round)
+      [ $beings... -> (<{hitPoints: <1..>}> $it) ] -> fold(0, <> $it.result + $it.item.hitPoints) -> (<> $it * $run.round * $run.stillFighting)
   end run
 end Battle
 
 // part 1
+
+  templates basicCombatValues
+    {attackValue: 3, hitPoints: 200} -> $it
+    $it
+  end basicCombatValues
+
+  templates oneRaceStanding
+    {elfAlive: false, gnomeAlive: false} -> $oneRaceStanding
+    $it... -> $templates
+    $oneRaceStanding -> (<{gnomeAlive: <true>, elfAlive: <true>}> 0 <> 1)
+
+    <{type: 'gnome', hitPoints: <1..>}>
+      {gnomeAlive: true} -> $oneRaceStanding
+
+    <{type: 'elf', hitPoints: <1..>}>
+      {elfAlive: true} -> $oneRaceStanding
+  end oneRaceStanding
+
 let data = stdin -> cave
 // How do we do new?
-let battle = <Battle>.new(<Battleground.new($data.grid), $data.beings)
+let battle = <Battle>.new(<Battleground.new($data.grid), $data.beings, basicCombatValues, oneRaceStanding)
 battle.run -> stdout
+
+// part 2
+templates victoryOrDeath
+    {elfDied: false, gnomeAlive: false} -> $victoryOrDeath
+    $it... -> $templates
+    $victoryOrDeath -> (<{elfDied: <true>}> -1 <{gnomeAlive: <true>}> 0 <> 1)
+
+    <{type: 'gnome', hitPoints: <1..>}>
+      {gnomeAlive: true} -> $stillFighting
+
+    <{type: 'elf', hitPoints: <..0>}>
+      {elfDied: true} -> $victoryOrDeath
+end victoryOrDeath
+
+  templates tweakedCombatValues(elfAttack <number>)
+    <{type: <'gnome'>}>
+      {attackValue: 3, hitPoints: 200} -> $it
+      $it
+
+    <{type: <'elf'>}>
+      {attackValue: $elfAttack, hitPoints: 200} -> $it
+      $it
+  end tweakedCombatValues
+
+source part2
+  { elfAttack: 3, result: -1 } -> $part2
+  $part2 -> $templates
+
+  <{result: <..!0>}>
+    { elfAttack: $part2.elfAttack + 1 } -> $part2
+    $let battle = <Battle>.new(<Battleground.new($data.grid), $data.beings, tweakedCombatValues($part2.elfAttack), victoryOrDeath)
+    { result: $battle.run} -> $part2
+    $part2 -> $templates
+
+  <{result: <0..>}>
+    $part2.result -> stdout
+end part2
+
+part2 -> stdout
