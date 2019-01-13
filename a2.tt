@@ -14,22 +14,21 @@ templates twosAndThrees
   <string>
     { two: 0, three: 0, c: $it.chars(1), count: 0, ne: [], rest: $it.chars(2..*) } -> $templates
 
-  <{rest:<[1..*]>}>
+  <{rest:<[](1..*)>}>
     $it.rest(1) ?<$it.c> (
          { count: $it.count + 1, rest: $it.rest(2..*) } -> $it -> $templates
     ) ?<*> (
          { ne: $([it.ne, [it.rest(1)]] -> concat), rest: $it.rest(2..*) } -> $it -> $templates
     )
 
-  <{rest:<[0]>, ne:<[0]>, count:<0>}>
+  <{rest:<[](0)>, ne:<[](0)>, count:<0>}>
     { two: $it.two, three: $it.three }        
 
-  <{rest:<[0]>}>
-    $it.count ?<2> (
-        { two: 1, count: 0, rest: $it.ne, ne: []} -> $it -> $templates
-    ) ?<3> (
-        { three: 1, count: 0, rest: $it.ne, ne: []} -> $it -> $templates
-    )
+  <{rest:<[](0)>, count: <2>}>
+    { two: 1, count: 0, rest: $it.ne, ne: []} -> $it -> $templates
+
+  <{rest:<[](0)>, count: <3>}>
+    { three: 1, count: 0, rest: $it.ne, ne: []} -> $it -> $templates
 end twosAndThrees
 
 templates sumAllKeyValues
@@ -37,12 +36,12 @@ templates sumAllKeyValues
   $it(2..*) -> $templates
   $it.result
 
-  <[1..]>
+  <[](1..)>
     $it(1)... -> $templates
     $it(2..*) -> $templates
 
-  <key=*:value=<number>>
-    { $key: $(value + it.result.$key) } -> $sumAllKeyValues.result
+  <*:<number>>
+    { $it.key: ($it.value + $it.result.$($it.key)) } -> $sumAllKeyValues.result
 end sumAllKeyValues
 
 // solution to part 1, phew!!!
@@ -52,16 +51,21 @@ tags -> twosAndThrees -> sumAllKeyValues -> ($it.two * $it.three) -> stdout
 // part 2
 
 templates onediff
+  templates sameletters(other: <string>)
+    $it.chars -> [i](
+          <$other.chars($i)>
+            $it
+        )
+  end sameletters
   { tag: $it(1), rest: $it(2..) } -> $templates
 
-  <{rest:<[1..]>}>
-    $let sameletters = $it.tag.chars -> [i]{other: $it.rest(1).chars}(
-      <$other($i)>
-        $it
-    )
-    $sameletters ?<[($it.tag.* - 1)]>(
-      $sameletters
-    ) ?<*>({ tag: $it.rest(1), rest: $it.rest(2..) } -> $templates)
+  <{ found: <[](1..)>}>
+    $it.found(1)
+
+  <{rest:<[](1..)>}>
+    $let tagSize = $it.tag.chars.*
+    $let found = [ $it.rest... -> sameletters($it.tag) -> (<?($it.chars.* <($tagSize-1)>)> $it) ]
+    { found: $found, tag: $it.rest(1), rest: $it.rest(2..) } -> $templates
 end onediff
 
 tags -> onediff -> stdout

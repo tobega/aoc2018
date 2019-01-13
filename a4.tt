@@ -14,7 +14,7 @@ end log
 templates concat
   [ $it... -> $templates ]
 
-  <[..]>
+  <[]>
     $it...
 
   <*>
@@ -27,7 +27,8 @@ templates bubblesort
     [ $it(2..)... -> $templates, $dragHighest.elem ]
 
     <*>
-        $it ?<..$dragHighest.elem>( $it ) ?<*>( $dragHighest.elem ({elem: $it} -> dragHighest))
+        $it -> (<..$dragHighest.elem> $it
+           <*> $dragHighest.elem ({elem: $it} -> dragHighest))
   end dragHighest
   { arr: $it } -> $bubblesort
 // How to represent the length property? .* or special |array| or just .length?

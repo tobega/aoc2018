@@ -11,8 +11,7 @@ end numbers
 let freqdiffs = 'input.txt' -> readfile -> numbers
 
 templates sum
-  <[*]>
-    { sum: 0, rest: $it} -> $templates
+  { sum: 0, rest: $it} -> $templates
 
   <{sum:,rest:<[1]>}>
      $(it.sum + it.rest(1))
@@ -24,17 +23,19 @@ end sum
 freqdiffs -> sum -> stdout
 
 templates findrepeat
-  <[*]>
-    $let seen = (0 -> (<set>.new))
-    { diffs: $it, i: 0, sum: 0, seen: $seen} -> $templates
+  $let seen = (0 -> (<set>.new))
+  { diffs: $it, i: 1, seen: $seen} -> $findrepeat
+  $findrepeat.diffs(1) -> $templates
 
-  <{*}>
-    $let i = (it.i % it.diffs.*) + 1
-    $let newsum = it.sum + it.diffs(i)
-    ($newsum -> it.seen.contains) ?<true>($newsum)
-    ?<false>(
-      { i: $i, sum: $newsum, seen: $(newsum -> it.seen)} -> $it -> $templates
-    )
+  <?($findrepeat.seen.contains)>
+    $it
+
+  <>
+    $it -> $findrepeat.seen
+    $let i = (Sfindrepeat.i % $findrepeat.diffs.*) + 1
+    { i: $i } -> $findrepeat
+    $it + $findrepeat.diffs($i) -> $templates
+
 end findrepeat
 
 freqdiffs -> findrepeat -> stdout
