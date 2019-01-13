@@ -1,0 +1,84 @@
+grammar nanobots
+  [ <bot>+ ]
+
+  bot: { ('pos=<') x: <INT>, (',') y: <INT>, (',') z: <INT>, ('>, r=') range: <INT> }
+end nanobots
+
+stereotype nanobot <{x: <number>, y: <number>, z: <number>, range: <number>>
+
+let bots = stdin -> nanobots
+
+// part1
+templates<nanobot> manhattanDistance(from <nanobot>)
+  (($it.x - $from.x) -> abs) + (($it.y - $from.y) -> abs) + (($it.z - $from.z) -> abs)
+end manhattanDistance
+
+// Is there a good syntax for an array of explicit matches? Or do we need to do the ?() ?
+let biggest = $bots -> reduce(<?($it(1).range <..$it(2).range>)> $it(1) <> $it(2))
+
+[ $bots... -> manhattanDistance($biggest) -> (<..$biggest.range> $it) ].* -> stdout
+
+// part2
+// Resolving the planes defining the octahedron gives a nice set of equations
+// 1: x + y + z <= r + a + b + c
+// 2: x + y - z <= r + a + b - c
+// 3: x - y + z <= r + a - b + c
+// 4: x - y - z <= r + a - b - c
+// 5: - x + y + z <= r - a + b + c
+// 6: - x + y - z <= r - a + b - c
+// 7: - x - y + z <= r - a - b + c
+// 8: - x - y - z <= r - a - b - c
+
+stereotype octahedron <{intersectingBots: <number>, constraints: <[<number>](8)>}>
+
+templates<octahedron> isFeasible
+  [i:1..4]($it.constraints($i) + $it.constraints(-$i))... -> (<..!0> false $exit)
+end isFeasible
+
+templates octahedronAround
+  $let abc = [$it.x, $it.y, $it.z]
+  { intersectingBots: 1, constraints:
+    [i:0..7](
+       [j:0..3](<?((i >> j) & 1 <1> -$abc($j+1) <> $abc($j+1))>) -> reduce(+)) }
+end octahedronAround
+
+templates<[<octahedron>](2)> intersect<octahedron>
+  { intersectingBots: ($it(1).intersectingBots + $it(2).intersectingBots),
+    // Can . transcend a vector? is [{a:<b>}].a just [<b>]?
+    contraints: ($it.constraints -> transpose -> min) }
+end intersect
+
+templates part2
+  $let empty = { intersectingBots: 0, constraints: [i:1..8]((1 << 63) - 1)}
+  { largestIntersect: $empty,
+    feasibleChoices: $it, remainingFeasibleChoices: [[]], currentIntersects: [ $empty ]}
+    -> $part2
+  $part2 -> $templates
+
+  <{feasibleChoices: <[](1..)>}
+    ?($it.currentIntersects(-1).intersectingBots + $it.feasibleChoices.*
+       <$it.largestIntersect.intersectingBots!..>)>
+    $let currentIntersect = [$it.currentIntersects(-1), $it.feasibleChoices(1)] -> intersect
+    $currentIntersect -> $part2.currentIntersects
+    $let largestIntersect = $it.largestIntersect -> (<{ intersectingBots: <..$currentIntersect.intersectingBots>}> $currentIntersect <> $it)
+    $it.feasibleChoices(2..) -> $part2.remainingFeasibleChoices
+    { feasibleChoices: [ $it.feasibleChoices(2..)... -> (<> [$it, $currentIntersect] -> intersect) -> (<?(isFeasible)> $it) ],
+      largestIntersect: $largestIntersect} -> $part2
+    $part2 -> $templates
+
+  <{remainingFeasibleChoices: <[](1..)>}>
+    { currentIntersects: $it.currentIntersects(1..-2),
+      feasibleChoices: $it.remainingFeasibleChoices(-1),
+      remainingFeasibleChoices: $it.remainingFeasibleChoices(1..-2) } -> $part2
+    $part2 -> $templates
+
+  <>
+  // Shaky hypothesis: turning the octahedron equations to >= means that the
+  // minimum must be when it is =. But manhattan distance is the sum of absolute
+  // values, so it must be the maximum of all the octahedron >= bounds.
+    - ($it.largestIntersect.constraints -> reduce(min))
+end part2
+
+let cubes = bots -> sort(<> $it(2).range - $it(1).range) -> octahedronAround
+
+$cubes -> part2 -> stdout
