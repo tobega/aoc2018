@@ -13,10 +13,10 @@ let freqdiffs = 'input.txt' -> readfile -> numbers
 templates sum
   { sum: 0, rest: $it} -> $templates
 
-  <{sum:,rest:<[1]>}>
+  <{sum:,rest:<[](1)>}>
      $(it.sum + it.rest(1))
 
-  <{sum:,rest:<[2..]>}>
+  <{sum:,rest:<[](2..)>}>
      { sum: $(it.sum + it.rest(1)), rest: $it.rest(2..*)} -> $templates
 end sum
 

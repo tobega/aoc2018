@@ -21,13 +21,13 @@ templates concat
     $it
 end concat
 
-templates bubblesort
+templates bubblesort(comp <templates<[](2)>:<number>>)
   $let templates dragHighest
     { elem: $it(1) } -> $dragHighest
     [ $it(2..)... -> $templates, $dragHighest.elem ]
 
     <*>
-        $it -> (<..$dragHighest.elem> $it
+        $it -> (<?(([$dragHighest.elem, $it] -> $comp) <..0>)> $it
            <*> $dragHighest.elem ({elem: $it} -> dragHighest))
   end dragHighest
   { arr: $it } -> $bubblesort
@@ -39,17 +39,32 @@ templates bubblesort
     { arr: ([ ($arr(1..-$it) -> dragHighest), $arr(-$it!..) ] -> concat) } -> $bubblesort
 end bubblesort
 
-grammar<{*}> collate
+grammar<{*}> shiftNaps
+[ <shift>+ ]
 
-shifts: [ <shift>+ ]
+shift: { guard: (<{note: <'Guard #(?<g>\d+).*'>}>) $g, naps: [ <nap>+ ] }
 
-// Should string matchers always be regex? Or do we need special notation for regex?
-shift: { guard: (<{note:'Guard #(\d+).*'(g=$1)}>)($g), naps: [ <nap>+ ] }
+nap: { sleep: (<{time: ms=<*>, note:'falls asleep'}>) $ms.minute,
+       wake: (<{time: mw=<*>, note:'wakes up'}>) $mw.minute }
+end shiftNaps
 
-nap: { sleep: (<{time: ms=<*>, note:'falls asleep'}>) #($ms.minute),
-       wake: (<{time: mw=<*>, note:'wakes up'}>) #($mw.minute) }
-end collate
+templates timeOrder
+  <?($it(1).time <..!$it(2).time>)> -1
+  <?($it(1).time <$it(2).time>)> 0
+  <> 1
+end timeOrder
 
-let shifts = 'a4.txt' -> readfile -> log.file -> (bubblesort)... -> collate.shifts
+let shifts = 'a4.txt' -> readfile -> log.file -> bubblesort(timeOrder) -> ... -> shiftNaps
 
+interface Aggregator <{ aggregate: <sink<*>>, result: <source<*>> }>
 
+templates summarize(groupings <[<key>]>, aggregates <[<key>: <aggregator>]>)
+
+end summarize
+
+processor Sum <Aggregator>
+  sum <number>
+
+end Sum
+
+let sleepiestGuard = $shifts -> summarize([guard:], [asleep: Sum]) -> reduce(max(asleep:)) -> .guard

@@ -1,7 +1,7 @@
 grammar plants
   data: ('initial state: ') { state: <STATE>, rules: <rules> }
 
-  STATE: [ <'[.#]+'>.chars[i] -> (<'#'> $i) ]
+  STATE: [ <'[.#]+'>.chars -> [i](<'#'> $i) ]
 
   rules: [ [ <rule>+ ] -> sort(<> $it(1).num - $it(2).num)-> ... -> (<*> $it.result) ]
 
@@ -24,7 +24,7 @@ templates encodeRule
      { rule: $encodeRule.rule << 1 } -> $encodeRule
 end encodeRule
 
-templates<[*]> reduce(f <templates<[2]>>)
+templates<[<^T>]>:<^T> reduce(f <templates<[<^T>](2)>:<^T>>)
   { result: $it(1) } -> $reduce
   $it(2..)... -> $templates
   $reduce.result
