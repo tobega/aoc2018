@@ -41,7 +41,7 @@ templates sumAllKeyValues
     $it(2..*) -> $templates
 
   <*:<number>>
-    { $it.key: ($it.value + $it.result.$($it.key)) } -> $sumAllKeyValues.result
+    { $it.key: ($it.value + $it.result.($it.key)) } -> $sumAllKeyValues.result
 end sumAllKeyValues
 
 // solution to part 1, phew!!!

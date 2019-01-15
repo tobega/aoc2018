@@ -58,13 +58,43 @@ let shifts = 'a4.txt' -> readfile -> log.file -> bubblesort(timeOrder) -> ... ->
 
 interface Aggregator <{ aggregate: <sink<*>>, result: <source<*>> }>
 
-templates summarize(groupings <[<key>]>, aggregates <[<key>: <aggregator>]>)
+templates summarize(groupings <[*:]>, aggregates <[*: <<Aggregator>>]>)
+  Map.new -> $summarize
+  $it... -> $templates
+  $summarize.entries -> { $it.key -> [i]($groupings($i): $it) -> ...,
+    $it.value... }
+
+  <?($it.$groupings -> $summarize.contains)>
+    let aggregators = $it.$groupings -> $summarize.get
+    $it -> [a:$aggregators]($it.($a.key) -> $a.value.aggregate)
+
+  <>
+    {key: $it.$groupings, value: [a:$aggregates]($a.key: $a.value.new)
 
 end summarize
 
 processor Sum <Aggregator>
-  sum <number>
+  sum <number> = 0
+  sink aggregate
+    $sum + $it -> $sum
+  end aggregate
 
+  source result
+    $sum
+  end result
 end Sum
 
-let sleepiestGuard = $shifts -> summarize([guard:], [asleep: Sum]) -> reduce(max(asleep:)) -> .guard
+let sleepiestGuard = $shifts -> {guard: $it.guard, asleep: ($it.naps.wake - $it.naps.sleep -> reduce<+>)
+  -> summarize([guard], [asleep: <Sum>]) -> reduce(max(asleep:)) // Not sure how to get this to work
+  -> .guard
+
+templates sleepiestMinute
+  [i:0..59](0) -> $sleepiestMinute
+  $it.naps -> concat -> $templates
+  $sleepiestMinute -> reduce(max([i]) // Not sure how to get this to work
+
+  <>
+    $it.wake..$it.sleep -> (min=<> $sleepiestMinute($min + 1) + 1 -> $sleepiestMinute($min + 1))
+end sleepiestMinute
+
+$shifts -> (<{guard: $sleepiestGuard}> $it) -> sleepiestMinute * $sleepiestGuard.guard

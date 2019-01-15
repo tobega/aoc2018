@@ -27,7 +27,7 @@ templates findrepeat
   { diffs: $it, i: 1, seen: $seen} -> $findrepeat
   $findrepeat.diffs(1) -> $templates
 
-  <?($findrepeat.seen.contains)>
+  <?($it -> $findrepeat.seen.contains)>
     $it
 
   <>
