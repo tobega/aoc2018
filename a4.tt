@@ -23,20 +23,25 @@ end concat
 
 templates bubblesort(comp <templates<[](2)>:<number>>)
   $let templates dragHighest
-    { elem: $it(1) } -> $dragHighest
-    [ $it(2..)... -> $templates, $dragHighest.elem ]
+      [ $it -> $templates ]
+      <[](..1)>
+        $it...
+      <[](2)?($it([1,2]) -> comp) <1>)>
+        $it([2,1])...
 
-    <*>
-        $it -> (<?(([$dragHighest.elem, $it] -> $comp) <..0>)> $it
-           <*> $dragHighest.elem ({elem: $it} -> dragHighest))
+      <?($it([1,2]) -> comp) <1>)>
+        $it(2)
+        [ $it(1), $it(3..) ] -> $templates
+      <>
+        $it(1)
+        $it(2..) -> $templates
   end dragHighest
-  { arr: $it } -> $bubblesort
-// How to represent the length property? .* or special |array| or just .length?
-  1..($it.*-2) -> $templates
-  $bubblesort.arr
-
-  <number>
-    { arr: ([ ($arr(1..-$it) -> dragHighest), $arr(-$it!..) ] -> concat) } -> $bubblesort
+  { toSort: $it, done: [] } -> $templates
+  <{ toSort: <[](..1)> }>
+    [ $it.toSort..., $it.done... ]
+  <>
+    $let partial = $it.toSort -> dragHighest
+    { toSort: $partial(1..-2), done: [ $partial(-1), $it.done... ] } -> $templates
 end bubblesort
 
 grammar<{*}> shiftNaps
