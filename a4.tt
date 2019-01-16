@@ -84,14 +84,14 @@ processor Sum <Aggregator>
   end result
 end Sum
 
-let sleepiestGuard = $shifts -> {guard: $it.guard, asleep: ($it.naps.wake - $it.naps.sleep -> reduce<+>)
-  -> summarize([(guard:)], [(asleep: <Sum>)]) -> reduce(max(asleep:)) // Not sure how to get this to work
+let sleepiestGuard = $shifts -> {guard: $it.guard, asleep: ($it.naps -> []($it.wake - $it.sleep) -> reduce<+>)}
+  -> summarize([(guard:)], [(asleep: <Sum>)]) -> reduce(max(asleep:)) // Want to return object but compare by asleep:. Not sure how to get this to work
   -> $it.guard
 
 templates sleepiestMinute
   [i:0..59](0) -> $sleepiestMinute
   $it.naps -> concat -> $templates
-  $sleepiestMinute -> reduce(max([i]) // Not sure how to get this to work
+  $sleepiestMinute -> reduce(max([i])) // Want to return index. Not sure how to get this to work
 
   <>
     $it.wake..$it.sleep -> (min=<> $sleepiestMinute($min + 1) + 1 -> $sleepiestMinute($min + 1))
