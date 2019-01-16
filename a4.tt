@@ -65,11 +65,11 @@ templates summarize(groupings <[*:]>, aggregates <[*: <<Aggregator>>]>)
     $it.value... }
 
   <?($it.$groupings -> $summarize.contains)>
-    let aggregators = $it.$groupings -> $summarize.get
+    let aggregators = $it -> [k:$groupings]($it.$k) -> []($summarize.get)
     $it -> [a:$aggregators]($it.($a.key) -> $a.value.aggregate)
 
   <>
-    {key: $it.$groupings, value: [a:$aggregates]($a.key: $a.value.new)
+    {key: ($it -> [k:$groupings]($it.$k)), value: [a:$aggregates]($a.key: $a.value.new)
 
 end summarize
 
@@ -85,8 +85,8 @@ processor Sum <Aggregator>
 end Sum
 
 let sleepiestGuard = $shifts -> {guard: $it.guard, asleep: ($it.naps.wake - $it.naps.sleep -> reduce<+>)
-  -> summarize([guard], [asleep: <Sum>]) -> reduce(max(asleep:)) // Not sure how to get this to work
-  -> .guard
+  -> summarize([(guard:)], [(asleep: <Sum>)]) -> reduce(max(asleep:)) // Not sure how to get this to work
+  -> $it.guard
 
 templates sleepiestMinute
   [i:0..59](0) -> $sleepiestMinute
