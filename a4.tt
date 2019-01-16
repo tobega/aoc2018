@@ -61,7 +61,7 @@ end timeOrder
 
 let shifts = 'a4.txt' -> readfile -> log.file -> bubblesort(timeOrder) -> ... -> shiftNaps
 
-interface Aggregator <{ aggregate: <sink<*>>, result: <source<*>> }>
+interface Aggregator<T> <{ aggregate: <sink<T>>, result: <source<T>> }>
 
 templates summarize(groupings <[*:]>, aggregates <[*: <<Aggregator>>]>)
   Map.new -> $summarize
@@ -78,7 +78,7 @@ templates summarize(groupings <[*:]>, aggregates <[*: <<Aggregator>>]>)
 
 end summarize
 
-processor Sum <Aggregator>
+processor Sum <Aggregator<number>>
   sum <number> = 0
   sink aggregate
     $sum + $it -> $sum
@@ -89,17 +89,35 @@ processor Sum <Aggregator>
   end result
 end Sum
 
-let sleepiestGuard = $shifts -> {guard: $it.guard, asleep: ($it.naps -> []($it.wake - $it.sleep) -> reduce<+>)}
-  -> summarize([(guard:)], [(asleep: <Sum>)]) -> reduce(max(asleep:)) // Want to return object but compare by asleep:. Not sure how to get this to work
-  -> $it.guard
-
 templates sleepiestMinute
   [i:0..59](0) -> $sleepiestMinute
   $it.naps -> concat -> $templates
-  $sleepiestMinute -> reduce(max([i])) // Want to return index. Not sure how to get this to work
+  $let sleepyIndex = 1..60 -> reduce(max(i=<> $sleepiestMinute($i)) // Compare by transformed index.
+  { sleepiestMinute: $sleepyIndex - 1, timesSlept: $sleepiestMinute($sleepyIndex) }
 
   <>
     $it.wake..$it.sleep -> (min=<> $sleepiestMinute($min + 1) + 1 -> $sleepiestMinute($min + 1))
 end sleepiestMinute
 
-$shifts -> (<{guard: $sleepiestGuard}> $it) -> sleepiestMinute * $sleepiestGuard.guard
+processor Collate <Aggregator<[]>>
+  list = []
+  sink aggregate
+    $it... -> $list
+  end aggregate
+
+  source result
+    $list
+  end result
+end Collate
+
+// part 1
+let sleepiestGuard = $shifts -> {guard: $it.guard, asleep: ($it.naps -> []($it.wake - $it.sleep) -> reduce<+>)}
+  -> summarize([(guard:)], [(asleep: <Sum>)]) -> reduce(max(asleep:)) // Compare by asleep:.
+  -> $it.guard
+
+[ $shifts... -> (<{guard: $sleepiestGuard}> $it) ] -> summarize([(guard:), [(naps: <Collate>)]) ->
+   $it(1) -> sleepiestMinute -> $it.sleepiestMinute * $sleepiestGuard.guard -> stdout
+
+// part 2
+$shifts -> summarize([(guard:), [(naps: <Collate>)]) -> [ $it... -> { guard: $it.guard, sleepPattern: $it -> sleepiestMinute} ]
+  -> reduce(max(sleepPattern.timesSlept:)) -> $it.guard * $it.sleepPattern.sleepiestMinute -> stdout
