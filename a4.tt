@@ -66,7 +66,7 @@ interface Aggregator<T> <{ aggregate: <sink<T>>, result: <source<T>> }>
 templates summarize(groupings <[*:]>, aggregates <[*: <<Aggregator>>]>)
   Map.new -> $summarize
   $it... -> $templates
-  $summarize.entries -> { $it.key -> [i]($groupings($i): $it) -> ...,
+  $summarize.entries -> { $it.key -> [i]($groupings($i): $it) -> $it...,
     $it.value... }
 
   <?($it.$groupings -> $summarize.contains)>
@@ -91,7 +91,7 @@ end Sum
 
 templates sleepiestMinute
   [i:0..59](0) -> $sleepiestMinute
-  $it.naps -> concat -> $templates
+  $it.naps -> $templates
   $let sleepyIndex = 1..60 -> reduce(max(i=<> $sleepiestMinute($i)) // Compare by transformed index.
   { sleepiestMinute: $sleepyIndex - 1, timesSlept: $sleepiestMinute($sleepyIndex) }
 
@@ -115,7 +115,7 @@ let sleepiestGuard = $shifts -> {guard: $it.guard, asleep: ($it.naps -> []($it.w
   -> summarize([(guard:)], [(asleep: <Sum>)]) -> reduce(max(asleep:)) // Compare by asleep:.
   -> $it.guard
 
-[ $shifts... -> (<{guard: $sleepiestGuard}> $it) ] -> summarize([(guard:), [(naps: <Collate>)]) ->
+[ $shifts... -> (<{guard: $sleepiestGuard}> $it) ] -> summarize([(guard:)], [(naps: <Collate>)]) ->
    $it(1) -> sleepiestMinute -> $it.sleepiestMinute * $sleepiestGuard.guard -> stdout
 
 // part 2
