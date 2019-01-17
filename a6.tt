@@ -27,7 +27,7 @@ templates<point> distance(point <point>)
 end distance
 
 let field = [x:$bb.left..$bb.right, y:$bb.top..$bb.bottom](
-  [ $coordinates... -> ({dist: ($it -> distance({x:$x, y:y}))} -> $it) ] ->
+  [ $coordinates... -> ({dist: ($it -> distance({x:$x, y:$y}))} -> $it) ] ->
     fold([], (
         <{acc: <[](0)>}>
           [ $it.val ]
@@ -49,3 +49,14 @@ let finiteField = $field -> [i,j]($it -> (<?($it -> in($infinites))> -1 <> $it))
 $finiteField -> flatten -> [ $it... -> (<-1> <> {id: $it, count: 1}) ] -> summarize([(id:)], [(count: <Sum>)])
   -> reduce(max(count:)) -> $it.count -> stdout
 
+// part 2.
+let totalDist = 10000
+let distBox = $bb -> { left: ([$it.left, $it.right - $totalDist] -> min),
+                       right: ([$it.right, $it.left + $totalDist] -> max,
+                       top: ([$it.top, $it.bottom - $totalDist] -> min,
+                       bottom: ([$it.bottom, $it.top + $totalDist] -> max}
+
+let distanceField = [x:$distBox.left..$distBox.right, y:$distBox.top..$distBox.bottom](
+  [ $coordinates... ->  distance({x:$x, y:$y}) ] -> reduce(+))
+
+$distanceField -> flatten -> [ $it... -> (<..!$totalDist>) ] -> $it.* -> stdout
