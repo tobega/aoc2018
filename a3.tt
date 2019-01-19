@@ -1,4 +1,5 @@
-grammar claim_file
+
+grammar claimData
 
 [ <claim>+ ]
 
@@ -6,5 +7,48 @@ claim: { (<'#'>) id:<INT> (<' @ '>)
  left:<INT> (<','>) top:<INT> (<': '>)
  width:<INT> (<'x'>) height: <INT> (<'\n'?>) }
 
-end claim_file
+end claimData
 
+let claims = stdin -> claimData
+
+templates<[<point>]> boundingbox<box>
+  { left: $it(1).left, top: $it(1).top, bottom: $it(1).top + $it(1).height, right: $it(1).left + $it(1).width } -> $boundingbox
+  $it(2..) -> $templates
+  $boundingbox
+
+  <*>
+    { left: ([$it.left, $boundingbox.left] -> min),
+      top: ([$it.top, $boundingbox.top] -> min),
+      bottom: ([$it.top + $it.height, $boundingbox.bottom] -> max,
+      right: ([$it.left + $it.width, $boundingbox.right] -> max } -> $boundingbox
+end boundingbox
+
+processor fabric
+  // top,left inclusive to bottom,right exclusive,
+  bounds <{left:<number>, top:<number>, bottom:<number>, right:<number>}>
+  claims <[<claim>]>
+
+  templates verticalScan
+    let x = $it
+    let profile = [ $claims... ->
+      (<{ left: <..$x>, width: <($x-$it.left)..>}> {y: $it.top, d: 1}, {y: $it.top + $it.height, d: -1}) ]
+      -> sort(asc(y:)))
+    { y: $profile(1).y, level: $profile(1).d, count: 0 } -> $verticalScan
+    $profile(2..)... -> $templates
+    $verticalScan.count
+
+    <>
+      let level = $verticalScan.level
+      let span = $it.y - $verticalScan.y
+      { y: $it.y, level: $level + $it.d, count: $verticalScan.count + ($level -> (<2..> $span <> 0)) } -> $verticalScan
+  end verticalScan
+
+  source countOverlapInches
+    [ $bounds.left..!$bounds.right -> verticalScan ] -> sum
+  end countOverlapInches
+end fabric
+
+let cloth = <fabric>.new($claims -> boundingbox, $claims)
+
+//part 1
+$cloth.countOverlappingInches -> stdout

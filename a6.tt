@@ -12,13 +12,14 @@ stereotype box <{left:<number>, top:<number>, bottom:<number>, right:<number>}>
 templates<[<point>]> boundingbox<box>
   { left: $it(1).x, top: $it(1).y, bottom: $it(1).y, right: $it(1).x } -> $boundingbox
   $it(2..) -> $templates
+  $boundingbox
 
   <*>
-    $it.x ?<..$boundingbox.left> ({left: $it.x} -> $boundingbox)
-      ?<$boundingbox.right..> ({right: $it.x} -> $boundingbox)
-    $it.y ?<..$boundingbox.top> ({top: $it.y} -> $boundingbox)
-      ?<$boundingbox.bottom..> ({bottom: $it.y} -> $boundingbox)
-end boundingbox($boundingbox)
+    { left: ([$it.left, $boundingbox.left] -> min),
+      top: ([$it.top, $boundingbox.top] -> min),
+      bottom: ([$it.bottom, $boundingbox.bottom] -> max,
+      right: ([$it.right, $boundingbox.right] -> max } -> $boundingbox
+end boundingbox
 
 let bb = coordinates -> boundingbox
 
