@@ -1,4 +1,4 @@
-
+stereotype claim <{left: <number>, top:<number>, width:<number>, height:<number>}>
 grammar claimData
 
 [ <claim>+ ]
@@ -11,7 +11,7 @@ end claimData
 
 let claims = stdin -> claimData
 
-templates<[<point>]> boundingbox<box>
+templates<[<claim>]> boundingbox<box>
   { left: $it(1).left, top: $it(1).top, bottom: $it(1).top + $it(1).height, right: $it(1).left + $it(1).width } -> $boundingbox
   $it(2..) -> $templates
   $boundingbox
@@ -52,3 +52,39 @@ let cloth = <fabric>.new($claims -> boundingbox, $claims)
 
 //part 1
 $cloth.countOverlappingInches -> stdout
+
+//part 2
+templates<[<claim>]> nonOverlapping
+  templates overlap(c <claim>)
+    <{top: <($c.top+$c.height)..>}>
+    |<{left: <($c.left+$c.width)..>}>
+    |<?($c.top <($it.top+$it.height)..>)>
+    |<?($c.left <($it.left+$it.width)..>)>
+      void
+
+    <>
+      $it
+  end overlap
+  { toCheck: [], nonOverlapping:[], remaining: $it } -> $nonOverlapping
+  $nonOverlapping -> $templates
+  $nonOverlapping.nonOverlapping
+
+  <{remaining: <[](0)>, toCheck: <[](0)>}>
+    $it.nonOverlapping
+
+  <{toCheck: <[](1..)>}>
+    let overlapping = $it.remaining -> overlaps($it.toCheck(1))
+    { toCheck: [ $it.toCheck(2..)..., $overlapping... ],
+      remaining: ($it.remaining -> notIn($overlapping))} -> $nonOverlapping
+    $nonOverlapping -> $templates
+
+  <{remaining: <[](1..)>}>
+    let checking = $it.remaining(1)
+    let overlapping = $it.remaining(2..) -> overlaps($it.remaining(1))
+    $overlapping -> (<[](0)> $checking -> $nonOverlapping.nonOverlapping
+      <> $overlapping... -> $nonOverlapping.toCheck)
+    {remaining: $it.remaining(2..) -> notIn($overlapping)} -> $nonOverlapping
+    $nonOverlapping -> $templates
+end nonOverlapping
+
+$claims -> nonOverlapping -> <> $it(1) -> stdout

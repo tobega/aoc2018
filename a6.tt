@@ -28,7 +28,7 @@ templates<point> distance(point <point>)
 end distance
 
 let field = [x:$bb.left..$bb.right, y:$bb.top..$bb.bottom](
-  [ $coordinates... -> ({dist: ($it -> distance({x:$x, y:$y}))} -> $it) ] ->
+  [ $coordinates... -> (<> {dist: ($it -> distance({x:$x, y:$y}))} -> $it) ] ->
     fold([], (
         <{acc: <[](0)>}>
           [ $it.val ]
