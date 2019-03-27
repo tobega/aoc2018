@@ -12,22 +12,50 @@ end sum
 
 $freqdiffs -> sum -> stdout
 
-// templates findrepeat
-//   $let seen = (0 -> (<set>.new))
-//   { diffs: $it, i: 1, seen: $seen} -> $findrepeat
-//   $findrepeat.diffs(1) -> $templates
+processor Set
+  templates find
+    $it -> @
+    { start: 1, end: $@Set::length } ->  #
+    <?($it.end <..~$it.start>)>
+      -$it.start !
+    <?($@Set($it.start) <$@>)>
+      $it.start !
+    <>
+      def bounds: $it
+      def mid: ($it.start + $it.end) / 2
+      $@Set($mid) -> (<$@find> {start: $mid} ! <..~$@find> {start: $mid + 1} ! <> {end: $mid - 1} !) -> ...$bounds -> #
+  end find
+  templates add
+    def item: $it
+    $it -> find -> #
+    <..0>
+      def pos: -$it
+      [ $@Set(1..($pos-1))..., $item, $@Set($pos..-1)... ] -> @Set
+      1 !
+    <>
+      0 !
+  end add
+  [] -> @
+  $it... -> add -> void
+end Set
 
-//   <?($it -> $findrepeat.seen.contains)>
-//     $it
+templates findrepeat
+  def seen: [0] -> Set
+  0 -> @
+  def adds: $it
+  [] -> #
+  <[](0)>
+    [ $adds... -> # ] -> #
+  <[](1..)>
+    $it(1) !
 
-//   <>
-//    $it -> $findrepeat.seen
-//    $let i = (Sfindrepeat.i % $findrepeat.diffs.*) + 1
-//    { i: $i } -> $findrepeat
-//    $it + $findrepeat.diffs($i) -> $templates
+  <>
+    $it + $@ -> @
+    $@ -> $seen::add -> (<0> $@findrepeat !) !
 
-//end findrepeat
+end findrepeat
 
-//freqdiffs -> findrepeat -> stdout
+'
+' -> stdout
 
-
+$freqdiffs -> findrepeat -> stdout
