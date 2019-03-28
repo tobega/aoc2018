@@ -1,73 +1,76 @@
-grammar tags_file
+composer tag
+  <'[a-z]+'>
+end tag
 
-[ <TAG>+ ]
-
-TAG: <[a-z]+> (<'\n'> -> skip)
-
-end tags_file
-
-let tags = stdin -> tags_file
+def tags: [ stdin -> tag ]
 
 templates twosAndThrees
-  [ $it... -> $templates ]
+  [ $it... -> # ] !
 
-  <string>
-    { two: 0, three: 0, c: $it.chars(1), count: 0, ne: [], rest: $it.chars(2..*) } -> $templates
+  <'.*'>
+    def chars: [ $it... ]
+    { two: 0, three: 0, c: $chars(1), count: 0, ne: [], rest: $chars(2..-1) } -> #
 
-  <{rest:<[](1..*)>}>
-    $it.rest(1) ?<$it.c> (
-         { count: $it.count + 1, rest: $it.rest(2..*) } -> $it -> $templates
-    ) ?<*> (
-         { ne: $([it.ne, [it.rest(1)]] -> concat), rest: $it.rest(2..*) } -> $it -> $templates
-    )
+  <{rest:<[](1..)>}>
+    def acc: $it
+    $it.rest(1) -> (<$acc.c>
+         { count: $acc.count + 1, rest: $acc.rest(2..-1) } -> ...$acc !
+      <>
+         { ne: [$acc.ne..., $acc.rest(1)], rest: $acc.rest(2..-1) } -> ...$acc !
+    ) -> #
 
   <{rest:<[](0)>, ne:<[](0)>, count:<0>}>
-    { two: $it.two, three: $it.three }        
+    { two: $it.two, three: $it.three } !
+
+  <{rest:<[](0)>, count: <1>}>
+    def acc: $it
+    { two: 1, count: 0} -> ...$acc -> #
 
   <{rest:<[](0)>, count: <2>}>
-    { two: 1, count: 0, rest: $it.ne, ne: []} -> $it -> $templates
+    def acc: $it
+    { three: 1, count: 0} -> ...$acc -> #
 
-  <{rest:<[](0)>, count: <3>}>
-    { three: 1, count: 0, rest: $it.ne, ne: []} -> $it -> $templates
+  <>
+    def acc: $it
+    { c: $acc.ne(1), rest: $acc.ne(2..-1), ne: [], count: 0 } -> ...$acc -> #
 end twosAndThrees
 
-templates sumAllKeyValues
-  { result: $it(1) } -> $sumAllKeyValues
-  $it(2..*) -> $templates
-  $it.result
+templates sumTwosAndThrees
+  $it(1) -> @
+  $it(2..-1)... -> #
+  $@ !
 
-  <[](1..)>
-    $it(1)... -> $templates
-    $it(2..*) -> $templates
-
-  <*:<number>>
-    { $it.key: ($it.value + $it.result.($it.key)) } -> $sumAllKeyValues.result
-end sumAllKeyValues
+  <{}>
+    { two: $it.two + $@.two, three: $it.three + $@.three } -> @
+end sumTwosAndThrees
 
 // solution to part 1, phew!!!
 
-tags -> twosAndThrees -> sumAllKeyValues -> ($it.two * $it.three) -> stdout
+$tags -> twosAndThrees -> sumTwosAndThrees -> ($it.two * $it.three) -> stdout
+
+'
+' -> stdout
 
 // part 2
 
-templates onediff
-  templates sameletters(other: <string>)
-    $it.chars -> [i](
-          <$other.chars($i)>
-            $it
-        )
-  end sameletters
-  { tag: $it(1), rest: $it(2..) } -> $templates
+//templates onediff
+//  templates sameletters(other: <string>)
+//    $it.chars -> [i](
+//          <$other.chars($i)>
+//            $it
+//        )
+//  end sameletters
+//  { tag: $it(1), rest: $it(2..) } -> $templates
 
-  <{ found: <[](1..)>}>
-    $it.found(1)
+//  <{ found: <[](1..)>}>
+//    $it.found(1)
 
-  <{rest:<[](1..)>}>
-    $let tagSize = $it.tag.chars.*
-    $let found = [ $it.rest... -> sameletters($it.tag) -> (<?($it.chars.* <($tagSize-1)>)> $it) ]
-    { found: $found, tag: $it.rest(1), rest: $it.rest(2..) } -> $templates
-end onediff
+//  <{rest:<[](1..)>}>
+//    $let tagSize = $it.tag.chars.*
+//    $let found = [ $it.rest... -> sameletters($it.tag) -> (<?($it.chars.* <($tagSize-1)>)> $it) ]
+//    { found: $found, tag: $it.rest(1), rest: $it.rest(2..) } -> $templates
+//end onediff
 
-tags -> onediff -> stdout
+//tags -> onediff -> stdout
     
     
