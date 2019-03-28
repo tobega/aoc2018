@@ -52,25 +52,24 @@ $tags -> twosAndThrees -> sumTwosAndThrees -> ($it.two * $it.three) -> stdout
 ' -> stdout
 
 // part 2
+templates onediff
+  [ $it -> # ] !
+  <[](2..)>
+    [ $it(1)... ] -> @
+    templates diffs
+      0 -> @
+      [ $it... ] -> [i](<~$@onediff($i)> 1 + $@diffs -> @diffs) -> void
+      $it -> (<?($@diffs<1>)> $@onediff... -> ...'' ! $it !) !
+    end diffs
+    $it(2..-1)... -> diffs !
+    $it(2..-1) -> #
+end onediff
 
-//templates onediff
-//  templates sameletters(other: <string>)
-//    $it.chars -> [i](
-//          <$other.chars($i)>
-//            $it
-//        )
-//  end sameletters
-//  { tag: $it(1), rest: $it(2..) } -> $templates
+templates collate
+  [ $it(1)... ] -> @
+  [ $it(2)... ] -> [i](<$@collate($i)> $it !)... -> ...'' !
+end collate
 
-//  <{ found: <[](1..)>}>
-//    $it.found(1)
-
-//  <{rest:<[](1..)>}>
-//    $let tagSize = $it.tag.chars.*
-//    $let found = [ $it.rest... -> sameletters($it.tag) -> (<?($it.chars.* <($tagSize-1)>)> $it) ]
-//    { found: $found, tag: $it.rest(1), rest: $it.rest(2..) } -> $templates
-//end onediff
-
-//tags -> onediff -> stdout
+$tags -> onediff -> collate -> stdout
     
     
