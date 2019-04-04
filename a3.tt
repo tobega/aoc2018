@@ -1,90 +1,83 @@
-stereotype claim <{left: <number>, top:<number>, width:<number>, height:<number>}>
-grammar claimData
-
-[ <claim>+ ]
-
-claim: { (<'#'>) id:<INT> (<' @ '>)
+composer claim
+ { (<'#'>) id:<INT> (<' @ '>)
  left:<INT> (<','>) top:<INT> (<': '>)
- width:<INT> (<'x'>) height: <INT> (<'\n'?>) }
+ width:<INT> (<'x'>) height: <INT> (<'\n'>?) }
+end claim
 
-end claimData
+def claims: [ stdin -> claim ]
 
-let claims = stdin -> claimData
+templates min
+  <?($it(1)<..$it(2)>)> $it(1) !
+  <> $it(2) !
+end min
 
-templates<[<claim>]> boundingbox<box>
-  { left: $it(1).left, top: $it(1).top, bottom: $it(1).top + $it(1).height, right: $it(1).left + $it(1).width } -> $boundingbox
-  $it(2..) -> $templates
-  $boundingbox
+templates max
+  <?($it(1)<$it(2)..>)> $it(1) !
+  <> $it(2) !
+end max
 
-  <*>
-    { left: ([$it.left, $boundingbox.left] -> min),
-      top: ([$it.top, $boundingbox.top] -> min),
-      bottom: ([$it.top + $it.height, $boundingbox.bottom] -> max,
-      right: ([$it.left + $it.width, $boundingbox.right] -> max } -> $boundingbox
+templates boundingbox
+  { left: $it(1).left, top: $it(1).top, bottom: $it(1).top + $it(1).height, right: $it(1).left + $it(1).width } -> @
+  $it(2..-1)... -> #
+  $@ !
+
+  <>
+    { left: [$it.left, $@.left] -> min,
+      top: [$it.top, $@.top] -> min,
+      bottom: [$it.top + $it.height, $@.bottom] -> max,
+      right: [$it.left + $it.width, $@.right] -> max } -> @
 end boundingbox
 
 processor fabric
-  // top,left inclusive to bottom,right exclusive,
-  bounds <{left:<number>, top:<number>, bottom:<number>, right:<number>}>
-  claims <[<claim>]>
+  { claims: $it, bounds: $it -> boundingbox } -> @
+
+  templates quicksort
+    [] -> @
+    $it -> #
+    <[](2..)>
+      def pivot: $it(1)
+      [ [ $it(2..-1)... -> (
+        <?($it.y<..$pivot.y>)>
+          $it !
+        <>
+          $it -> ...$@quicksort -> @quicksort
+       )] -> quicksort..., $pivot, $@ -> quicksort... ] !
+     <>
+       $it !
+  end quicksort
 
   templates verticalScan
-    let x = $it
-    let profile = [ $claims... ->
-      (<{ left: <..$x>, width: <($x-$it.left)..>}> {y: $it.top, d: 1}, {y: $it.top + $it.height, d: -1}) ]
-      -> sort(asc(y:)))
-    { y: $profile(1).y, level: $profile(1).d, count: 0 } -> $verticalScan
-    $profile(2..)... -> $templates
-    $verticalScan.count
+    def x: $it
+    def profile: [ $@fabric.claims... ->
+      ( def w: $x - $it.left
+        $it -> #
+        <{ left: <..$x>,  width: <$w~..> }> {y: $it.top, d: 1} ! {y: $it.top + $it.height, d: -1} !
+      ) ]
+      -> quicksort
+    { y: $profile(1).y, level: $profile(1).d, count: 0 } -> @
+    $profile(2..-1)... -> #
+    $@.count !
 
     <>
-      let level = $verticalScan.level
-      let span = $it.y - $verticalScan.y
-      { y: $it.y, level: $level + $it.d, count: $verticalScan.count + ($level -> (<2..> $span <> 0)) } -> $verticalScan
+      def level: $@.level
+      def span: $it.y - $@.y
+      def inc: $level -> (<2..> $span ! <> 0 !)
+      { y: $it.y, level: $level + $it.d, count: $@.count + $inc } -> @
   end verticalScan
 
-  source countOverlapInches
-    [ $bounds.left..!$bounds.right -> verticalScan ] -> sum
+  templates sum
+    0 -> @
+    $it... -> ($it + $@sum -> @sum) -> void
+    $@ !
+  end sum
+
+  templates countOverlapInches // should be source
+    [ $@fabric.bounds.left..~$@fabric.bounds.right -> verticalScan ] -> sum !
   end countOverlapInches
 end fabric
 
-let cloth = <fabric>.new($claims -> boundingbox, $claims)
+def cloth: $claims -> fabric
 
 //part 1
-$cloth.countOverlappingInches -> stdout
+$cloth::countOverlapInches -> stdout
 
-//part 2
-templates<[<claim>]> nonOverlapping
-  templates overlap(c <claim>)
-    <{top: <($c.top+$c.height)..>}>
-    |<{left: <($c.left+$c.width)..>}>
-    |<?($c.top <($it.top+$it.height)..>)>
-    |<?($c.left <($it.left+$it.width)..>)>
-      void
-
-    <>
-      $it
-  end overlap
-  { toCheck: [], nonOverlapping:[], remaining: $it } -> $nonOverlapping
-  $nonOverlapping -> $templates
-  $nonOverlapping.nonOverlapping
-
-  <{remaining: <[](0)>, toCheck: <[](0)>}>
-    $it.nonOverlapping
-
-  <{toCheck: <[](1..)>}>
-    let overlapping = $it.remaining -> overlaps($it.toCheck(1))
-    { toCheck: [ $it.toCheck(2..)..., $overlapping... ],
-      remaining: ($it.remaining -> notIn($overlapping))} -> $nonOverlapping
-    $nonOverlapping -> $templates
-
-  <{remaining: <[](1..)>}>
-    let checking = $it.remaining(1)
-    let overlapping = $it.remaining(2..) -> overlaps($it.remaining(1))
-    $overlapping -> (<[](0)> $checking -> $nonOverlapping.nonOverlapping
-      <> $overlapping... -> $nonOverlapping.toCheck)
-    {remaining: $it.remaining(2..) -> notIn($overlapping)} -> $nonOverlapping
-    $nonOverlapping -> $templates
-end nonOverlapping
-
-$claims -> nonOverlapping -> <> $it(1) -> stdout
