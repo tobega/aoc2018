@@ -74,10 +74,36 @@ processor fabric
   templates countOverlapInches // should be source
     [ $@fabric.bounds.left..~$@fabric.bounds.right -> verticalScan ] -> sum !
   end countOverlapInches
+
+  templates getNonOverlapping
+    templates nonOverlapping
+      def candidate: $@fabric.claims($it)
+      def skip: $it
+      { compareTo: 1 } -> #
+
+      <{compareTo: <$@fabric.claims::length~..>}>
+        $candidate !
+
+      <{compareTo: <$skip>}
+      | {compareTo: <..$@fabric.claims::length>}
+        ?($@fabric.claims($it.compareTo)
+          <{top: <($candidate.top+$candidate.height)..>}
+          | {left: <($candidate.left+$candidate.width)..>}
+          | ?($it.top + $it.height <..$candidate.top>)
+          | ?($it.left+$it.width <..$candidate.left>)>
+        )>
+        { compareTo: $it.compareTo + 1 } -> #
+    end nonOverlapping
+    [ 1..$@fabric.claims::length -> nonOverlapping ] !
+  end getNonOverlapping
 end fabric
 
 def cloth: $claims -> fabric
 
 //part 1
-$cloth::countOverlapInches -> stdout
+'$cloth::countOverlapInches;
+'-> stdout
 
+//part 2
+$cloth::getNonOverlapping -> '$it(1).id;
+'-> stdout
