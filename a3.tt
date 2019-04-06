@@ -78,21 +78,23 @@ processor fabric
   templates getNonOverlapping
     templates nonOverlapping
       def candidate: $@fabric.claims($it)
-      def skip: $it
-      { compareTo: 1 } -> #
+      $it -> @
+      1..$@fabric.claims::length -> #
+      $@ -> (<1..> $it ! ) !
 
-      <{compareTo: <$@fabric.claims::length~..>}>
-        $candidate !
+      <$@ | ?($@ <0>)>
+        void
 
-      <{compareTo: <$skip>}
-      | {compareTo: <..$@fabric.claims::length>}
-        ?($@fabric.claims($it.compareTo)
+      <?($@fabric.claims($it)
           <{top: <($candidate.top+$candidate.height)..>}
           | {left: <($candidate.left+$candidate.width)..>}
           | ?($it.top + $it.height <..$candidate.top>)
           | ?($it.left+$it.width <..$candidate.left>)>
         )>
-        { compareTo: $it.compareTo + 1 } -> #
+        void
+
+      <>
+        0 -> @
     end nonOverlapping
     [ 1..$@fabric.claims::length -> nonOverlapping ] !
   end getNonOverlapping
@@ -105,5 +107,5 @@ def cloth: $claims -> fabric
 '-> stdout
 
 //part 2
-$cloth::getNonOverlapping -> '$it(1).id;
+$cloth::getNonOverlapping -> '$it(1);
 '-> stdout
