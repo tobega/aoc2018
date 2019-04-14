@@ -1,123 +1,54 @@
-grammar log
+composer record
+  { time: (<'\['>) <ISO_DATE_TIME> (<'] '>), note: <TO_LINE_END> }
 
-[ <record>+ ]
+  ISO_DATE_TIME: <'\d\d\d\d-\d\d-\d\d \d\d:\d\d'>
 
-record: { time: (<'\['>) <ISO_DATE_TIME> (<'] '>), note: <TO_LINE_END> }
+  TO_LINE_END: <'[^\n]*'> (<'\n'>?)
+end record
 
-ISO_DATE_TIME: <'\d\d\d\d-\d\d-\d\d \d\d:\d\d(:\d\d)?'> -> <DateTime>.parse
+templates bubblesort
+      templates bubble
+          {N: 1} -> ...$@bubblesort -> @bubblesort // stop condition if no position changed, merge with current value
+          $it(1) -> @
+          // The [i] makes the inline templates apply to each value of the array, with i as the index value
+          // for the array slice sent in (not the original array)
+          $it(2..-1) -> [i](
+              <?($it.time <..$@bubble.time>)>
+                {N: $i} -> ...$@bubblesort -> @bubblesort // last position that changed
+                $it !
+              <>
+                $@bubble !
+                $it -> @bubble
+          )... ! // output the elements as a stream
+          $@ ! // output the maximum value saved in the state value
+      end bubble
 
-TO_LINE_END: <'[^\n]'*> (<'\n'>)
-
-end log
-
-// removes the second array level, i.e. [ [1,2], [3, [4,5]], 6] becomes [1,2,3,[4,5],6]
-templates concat
-  [ $it... -> $templates ]
-
-  <[]>
-    $it...
-
-  <*>
-    $it
-end concat
-
-templates bubblesort(comp <templates<[](2)>:<number>>)
-  $let templates dragHighest
-      [ $it -> $templates ]
-      <[](..1)>
-        $it...
-      <[](2)?($it([1,2]) -> comp) <1>)>
-        $it([2,1])...
-
-      <?($it([1,2]) -> comp) <1>)>
-        $it(2)
-        [ $it(1), $it(3..) ] -> $templates
-      <>
-        $it(1)
-        $it(2..) -> $templates
-  end dragHighest
-  { toSort: $it, done: [] } -> $templates
-  <{ toSort: <[](..1)> }>
-    [ $it.toSort..., $it.done... ]
-  <>
-    $let partial = $it.toSort -> dragHighest
-    { toSort: $partial(1..-2), done: [ $partial(-1), $it.done... ] } -> $templates
+      { array: $it } -> @
+      -1 -> # // -1 refers to the last element, since all is unsorted to start with
+      <1>
+        $@.array !
+      <~1>
+        {array: [ $@.array(1..$it) -> bubble, $@.array($it+1..-1)... ]} -> ...$@ -> @
+        $@.N -> #
 end bubblesort
 
-grammar<{*}> shiftNaps
-[ <shift>+ ]
+composer guardId
+  (<'Guard #'>) <INT> (<' begins shift'>)
+end guardId
 
-shift: { guard: (<{note: <'Guard #(?<g>\d+).*'>}>) $g, naps: [ <nap>+ ] }
+composer minute
+  (<'\d\d\d\d-\d\d-\d\d \d\d:0?'>) <INT>
+end minute
 
-nap: { sleep: (<{time: ms=<*>, note:'falls asleep'}>) $ms.minute,
-       wake: (<{time: mw=<*>, note:'wakes up'}>) $mw.minute }
+templates shiftNaps
+  templates collateShift
+    def records: $it
+    { guard: $it(1).note -> guardId, naps:
+      [2..~$it::length:2 -> { sleep: $records($it).time -> minute, wake: $records($it+1).time -> minute }] } !
+  end collateShift
+  def log: $it
+  def starts: [$it -> [i](<{note: <'Guard #.*'>}> $i !)..., 0]
+  [ 1..($starts::length-1) -> $log($starts($it)..($starts($it+1) - 1)) -> collateShift ] !
 end shiftNaps
 
-templates timeOrder
-  <?($it(1).time <..!$it(2).time>)> -1
-  <?($it(1).time <$it(2).time>)> 0
-  <> 1
-end timeOrder
-
-let shifts = 'a4.txt' -> readfile -> log.file -> bubblesort(timeOrder) -> ... -> shiftNaps
-
-interface Aggregator<T> <{ aggregate: <sink<T>>, result: <source<T>> }>
-
-templates summarize(groupings <[*:]>, aggregates <[*: <<Aggregator>>]>)
-  Map.new -> $summarize
-  $it... -> $templates
-  $summarize.entries -> { $it.key -> [i]($groupings($i): $it) -> $it...,
-    $it.value... }
-
-  <?($it.$groupings -> $summarize.contains)>
-    let aggregators = $it -> [k:$groupings]($it.$k) -> []($summarize.get)
-    $it -> [a:$aggregators]($it.($a.key) -> $a.value.aggregate)
-
-  <>
-    {key: ($it -> [k:$groupings]($it.$k)), value: [a:$aggregates]($a.key: $a.value.new)
-
-end summarize
-
-processor Sum <Aggregator<number>>
-  sum <number> = 0
-  sink aggregate
-    $sum + $it -> $sum
-  end aggregate
-
-  source result
-    $sum
-  end result
-end Sum
-
-templates sleepiestMinute
-  [i:0..59](0) -> $sleepiestMinute
-  $it.naps -> $templates
-  $let sleepyIndex = 1..60 -> reduce(max(i=<> $sleepiestMinute($i)) // Compare by transformed index.
-  { sleepiestMinute: $sleepyIndex - 1, timesSlept: $sleepiestMinute($sleepyIndex) }
-
-  <>
-    $it.wake..$it.sleep -> (min=<> $sleepiestMinute($min + 1) + 1 -> $sleepiestMinute($min + 1))
-end sleepiestMinute
-
-processor Collate <Aggregator<[]>>
-  list = []
-  sink aggregate
-    $it... -> $list
-  end aggregate
-
-  source result
-    $list
-  end result
-end Collate
-
-// part 1
-let sleepiestGuard = $shifts -> {guard: $it.guard, asleep: ($it.naps -> []($it.wake - $it.sleep) -> reduce<+>)}
-  -> summarize([(guard:)], [(asleep: <Sum>)]) -> reduce(max(asleep:)) // Compare by asleep:.
-  -> $it.guard
-
-[ $shifts... -> (<{guard: $sleepiestGuard}> $it) ] -> summarize([(guard:)], [(naps: <Collate>)]) ->
-   $it(1) -> sleepiestMinute -> $it.sleepiestMinute * $sleepiestGuard.guard -> stdout
-
-// part 2
-$shifts -> summarize([(guard:), [(naps: <Collate>)]) -> [ $it... -> { guard: $it.guard, sleepPattern: $it -> sleepiestMinute} ]
-  -> reduce(max(sleepPattern.timesSlept:)) -> $it.guard * $it.sleepPattern.sleepiestMinute -> stdout
+def shifts: [ stdin -> record ] -> bubblesort -> shiftNaps
