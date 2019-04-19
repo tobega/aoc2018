@@ -52,3 +52,87 @@ templates shiftNaps
 end shiftNaps
 
 def shifts: [ stdin -> record ] -> bubblesort -> shiftNaps
+
+// templates <[{guard:<number>}](2)>:<-1..1> guardComparator
+templates guardComparator
+  def second: $it(2).guard
+  $it(1).guard -> #
+  <$second> 0 !
+  <..$second> -1 !
+  <> 1 !
+end guardComparator
+
+//templates max@{comparator:<templates<[](2)>:<-1..1>>}
+templates max@{comparator:}
+  $it(1) -> @
+  $it(2..-1)... -> #
+  $@ !
+  <?([$it, $@] -> $comparator <1>)>
+    $it -> @
+end max
+
+def highestGuardNo: $shifts -> max@{comparator:guardComparator} -> $it.guard
+
+templates collateGuards
+  [ 1..$highestGuardNo -> { guard: $it, naps: []} ] -> @
+  $it... -> (def guard: $it.guard
+    [ $@collateGuards(1..$guard-1)..., { guard: $guard, naps: $it.naps... -> ...$@collateGuards($guard).naps },
+    $@collateGuards($guard+1..-1)... ]  -> @collateGuards) -> void
+  [ $@... -> (<{naps:<[](1..)>}> $it !) ] !
+end collateGuards
+
+def guardNaps: $shifts -> collateGuards
+
+templates makeStats
+  { guard: $it.guard, totalSleep: 0, minutes: [ 0..59 -> 0 ] } -> @
+  $it.naps... -> (def nap: $it
+    { totalSleep: $nap.wake - $nap.sleep + $@makeStats.totalSleep,
+      minutes: [ $@makeStats.minutes(1..$nap.sleep)...,
+        $@makeStats.minutes($nap.sleep+1..$nap.wake)... -> $it + 1,
+        $@makeStats.minutes($nap.wake+1..-1)... ] } -> ...$@makeStats -> @makeStats) -> void
+  $@ !
+end makeStats
+
+def guardStats: [ $guardNaps... -> makeStats ]
+
+// part 1
+templates byTotalSleep
+  def second: $it(2).totalSleep
+  $it(1).totalSleep -> #
+  <$second> 0 !
+  <..$second> -1 !
+  <> 1 !
+end byTotalSleep
+
+templates byTimes
+  def second: $it(2).times
+  $it(1).times -> #
+  <$second> 0 !
+  <..$second> -1 !
+  <> 1 !
+end byTimes
+
+templates sleepiestMinute
+  $it -> [i]({minute: $i - 1, times: $it} !) -> max@{comparator: byTimes} !
+end sleepiestMinute
+
+$guardStats -> max@{comparator: byTotalSleep}
+  -> (def minute: $it.minutes -> sleepiestMinute -> $it.minute
+      $it.guard * $minute !)
+  -> stdout
+
+'
+' -> stdout
+
+// part 2
+
+templates bySleepiestMinute
+  def second: $it(2).sleepiestMinute.times
+  $it(1).sleepiestMinute.times -> #
+  <$second> 0 !
+  <..$second> -1 !
+  <> 1 !
+end bySleepiestMinute
+
+[ $guardStats... -> { guard: $it.guard, sleepiestMinute: $it.minutes -> sleepiestMinute } ]
+  -> max@{comparator: bySleepiestMinute} -> $it.guard * $it.sleepiestMinute.minute -> stdout
