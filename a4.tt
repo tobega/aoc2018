@@ -6,31 +6,20 @@ composer record
   TO_LINE_END: <'[^\n]*'> (<'\n'>?)
 end record
 
-templates bubblesort
-      templates bubble
-          {N: 1} -> ...$@bubblesort -> @bubblesort // stop condition if no position changed, merge with current value
-          $it(1) -> @
-          // The [i] makes the inline templates apply to each value of the array, with i as the index value
-          // for the array slice sent in (not the original array)
-          $it(2..-1) -> [i](
-              <?($it.time <..$@bubble.time>)>
-                {N: $i} -> ...$@bubblesort -> @bubblesort // last position that changed
-                $it !
-              <>
-                $@bubble !
-                $it -> @bubble
-          )... ! // output the elements as a stream
-          $@ ! // output the maximum value saved in the state value
-      end bubble
-
-      { array: $it } -> @
-      -1 -> # // -1 refers to the last element, since all is unsorted to start with
-      <1>
-        $@.array !
-      <~1>
-        {array: [ $@.array(1..$it) -> bubble, $@.array($it+1..-1)... ]} -> ...$@ -> @
-        $@.N -> #
-end bubblesort
+templates quicksort@{comparator:}
+  [] -> @
+  $it -> #
+  <[](2..)>
+    def pivot: $it(1)
+    [ [ $it(2..-1)... -> (
+      <?([$it, $pivot] -> $comparator <..0>)>
+        $it !
+      <>
+        $it -> ...$@quicksort -> @quicksort
+     )] -> quicksort@{comparator:$comparator}..., $pivot, $@ -> quicksort@{comparator:$comparator}... ] !
+   <>
+     $it !
+end quicksort
 
 composer guardId
   (<'Guard #'>) <INT> (<' begins shift'>)
@@ -51,7 +40,15 @@ templates shiftNaps
   [ 1..($starts::length-1) -> $log($starts($it)..($starts($it+1) - 1)) -> collateShift ] !
 end shiftNaps
 
-def shifts: [ stdin -> record ] -> bubblesort -> shiftNaps
+templates byTime
+  def second: $it(2).time
+  $it(1).time -> #
+  <$second> 0 !
+  <..$second> -1 !
+  <> 1 !
+end byTime
+
+def shifts: [ stdin -> record ] -> quicksort@{comparator: byTime} -> shiftNaps
 
 // templates <[{guard:<number>}](2)>:<-1..1> guardComparator
 templates guardComparator
