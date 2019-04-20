@@ -1,0 +1,20 @@
+composer polymerReaction
+  [ (<reaction>*) <suffix>* ]
+  suffix: <'.'> (<reaction>*)
+  reaction: <'(?i)([a-z])(?-i)(?!\1)(?i)\1'>
+end polymerReaction
+
+templates reactAll
+  0 -> @
+  $it -> #
+  <?($it::length <$@>)>
+    $@ !
+  <>
+  $it::length -> @
+  $it... -> ...'' -> polymerReaction -> #
+end reactAll
+
+def polymer: [ stdin... ]
+
+// part 1
+$polymer -> reactAll -> stdout
