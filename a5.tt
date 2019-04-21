@@ -18,3 +18,32 @@ def polymer: [ stdin... ]
 
 // part 1
 $polymer -> reactAll -> stdout
+
+'
+' -> stdout
+
+// part 2
+templates in@{values:}
+  def what: $it
+  0 -> @
+  $values... -> #
+  $@ !
+  <$what>
+    1 -> @
+end in
+
+def allUnits: [ 'aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ'... ]
+def pairs: [ 1..$allUnits::length:2 ->  $allUnits($it..$it+1)]
+
+templates findShortest
+  templates removeUnit@{unit:}
+    [ $polymer... -> (<?($it -> in@{values:$unit} <0>)> $it !) ] !
+  end removeUnit
+  $polymer::length -> @
+  $it... -> ($it -> removeUnit@{unit:$it} !) -> reactAll -> #
+  $@ !
+  <..~$@>
+    $it -> @
+end findShortest
+
+$pairs -> findShortest -> stdout
