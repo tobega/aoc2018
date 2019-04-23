@@ -1,0 +1,91 @@
+composer step
+  { dep: (<'Step '>) <'.'> (<' must be finished before step '>) step: <'.'> (<' can begin.'>) }
+end step
+
+def deps: [ stdin -> step ]
+
+templates in@{values:}
+  def what: $it
+  0 -> @
+  $values... -> #
+  $@ !
+  <$what>
+    1 -> @
+end in
+
+templates reduce@{operator:}
+  $it(1) -> @
+  $it(2..-1)... -> ([$@reduce, $it] -> $operator -> @reduce) -> void
+  $@ !
+end reduce
+
+templates min
+  <?($it(1)<..$it(2)>)> $it(1) !
+  <> $it(2) !
+end min
+
+// part 1
+templates topological
+ def waiting: [ $it... -> $it.step ]
+ { unresolved: $it,
+   ready: [ $it... -> $it.dep -> (<?($it -> in@{values: $waiting} <0>)> $it !) ] } -> #
+ <{ready: <[](1..)>}>
+   def current: $it
+   def next: $current.ready -> reduce@{operator:min}
+   $next !
+   def unresolved: [ $current.unresolved... -> (<?($it.dep <~$next>)> $it! ) ]
+   def waiting: [ $unresolved... -> $it.step ]
+   { unresolved: $unresolved,
+     ready: [ $current.ready... -> (<~$next> $it !),
+       $current.unresolved... -> (<?($it.dep <$next>)> $it! ) -> $it.step -> (<?($it -> in@{values: $waiting} <0>)> $it !)]
+   } -> #
+end topological
+
+$deps -> topological -> stdout
+'
+' -> stdout
+
+// part 2
+def tasks: ['ABCDEFGHIJKLMNOPQRSTUVWXYZ'...]
+templates taskIndex
+  def value: $it
+  $tasks -> [i](<$value> $i !)... !
+end taskIndex
+
+templates minByTime
+  <?($it(1).time<..$it(2).time>)> $it(1) !
+  <> $it(2) !
+end minByTime
+
+templates multi@{workers:, delay:}
+ 0 -> @
+ def waiting: [ $it... -> $it.step ]
+ { unresolved: $it,
+   ready: [ $it... -> $it.dep -> (<?($it -> in@{values: $waiting} <0>)> $it !) ],
+   workers: []} -> #
+ $@ !
+
+ <{workers: <[](..$workers-1)>, ready: <[](1..)>}>
+  def current: $it
+  def next: $current.ready -> reduce@{operator:min}
+  { workers: { task: $next, time: $delay + ($next -> taskIndex) } -> ...$current.workers,
+    ready: [$current.ready... -> (<~$next> $it!)]
+    unresolved: $current.unresolved } -> #
+
+ <{workers: <[](1..)>}>
+   def mintime: $it.workers -> reduce@{operator:minByTime} -> $it.time
+   $mintime + $@ -> @
+   def current: $it
+   def workers: [ $it.workers... ->  { task: $it.task, time: $it.time - $mintime } ]
+   def done: [$workers...  -> (<?($it.time <0>)> $it !) -> $it.task]
+   def unresolved: [ $current.unresolved... -> (<?($it.dep -> in@{values:$done} <0>)> $it! ) ]
+   def waiting: [ $unresolved... -> $it.step ]
+   { unresolved: $unresolved,
+     ready: [ $current.ready... -> (<?($it -> in@{values:$done} <0>)> $it !),
+       $current.unresolved... -> (<?($it.dep -> in@{values:$done} <1>)> $it! ) -> $it.step -> (<?($it -> in@{values: $waiting} <0>)> $it !)],
+     workers: [ $workers... -> (<?($it.time <1..>)> $it !)]
+   } -> #
+end multi
+
+$deps -> multi@{workers: 5, delay: 60} -> stdout
+
