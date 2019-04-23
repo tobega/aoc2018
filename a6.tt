@@ -1,63 +1,129 @@
-grammar coords
-  [ <coord>+ ]
+composer coord
+  { x: <INT> (<', '>) y: <INT> }
+end coord
 
-  coord: { x: <'\d+'> (<', '>) y: <'\d+'> }
-end coords
+def coordinates: [ stdin -> coord ] -> [i]($it -> ...{ id: $i } !)
 
-let coordinates = stdin -> coords -> [i]({ id: $i } -> $it)
+templates min
+  <?($it(1)<..$it(2)>)> $it(1) !
+  <> $it(2) !
+end min
 
-stereotype point <{x: <number>, y: <number>}>
-stereotype box <{left:<number>, top:<number>, bottom:<number>, right:<number>}>
+templates max
+  <?($it(1)<$it(2)..>)> $it(1) !
+  <> $it(2) !
+end max
 
-templates<[<point>]> boundingbox<box>
-  { left: $it(1).x, top: $it(1).y, bottom: $it(1).y, right: $it(1).x } -> $boundingbox
-  $it(2..) -> $templates
-  $boundingbox
-
-  <*>
-    { left: ([$it.left, $boundingbox.left] -> min),
-      top: ([$it.top, $boundingbox.top] -> min),
-      bottom: ([$it.bottom, $boundingbox.bottom] -> max,
-      right: ([$it.right, $boundingbox.right] -> max } -> $boundingbox
+templates boundingbox
+  { left: $it(1).x, top: $it(1).y, bottom: $it(1).y, right: $it(1).x } -> @
+  $it(2..-1)... -> ({ left: [$it.x, $@boundingbox.left] -> min,
+                    top: [$it.y, $@boundingbox.top] -> min,
+                    bottom: [$it.y, $@boundingbox.bottom] -> max,
+                    right: [$it.x, $@boundingbox.right] -> max } -> @boundingbox) -> void
+  $@ !
 end boundingbox
 
-let bb = coordinates -> boundingbox
+def bb: $coordinates -> boundingbox
 
-templates<point> distance(point <point>)
-  ($it.x - $point.x -> abs) + ($it.y - $point.y -> abs)
-end distance
+templates abs
+  <0..> $it !
+  <> -$it !
+end abs
 
-let field = [x:$bb.left..$bb.right, y:$bb.top..$bb.bottom](
-  [ $coordinates... -> (<> {dist: ($it -> distance({x:$x, y:$y}))} -> $it) ] ->
-    fold([], (
-        <{acc: <[](0)>}>
-          [ $it.val ]
-        <?($it.acc(1).dist <$it.val.dist>)>
-          [ { id: -1, dist: -1} ]
-        <?($it.acc(1).dist <$it.val.dist!..>)>
-          [ $it.val ]
-        <>
-          $it.acc
-      )
-    ) -> $it(1).id
-)
+templates quicksort@{comparator:}
+  [] -> @
+  $it -> #
+  <[](2..)>
+    def pivot: $it(1)
+    [ [ $it(2..-1)... -> (
+      <?([$it, $pivot] -> $comparator <..0>)>
+        $it !
+      <>
+        $it -> ...$@quicksort -> @quicksort
+     )] -> quicksort@{comparator:$comparator}..., $pivot, $@ -> quicksort@{comparator:$comparator}... ] !
+   <>
+     $it !
+end quicksort
 
-let infinites = [ $field(1,*)..., $field(-1,*)..., $field(*,1)..., $field(*,-1)... ] -> unique
+templates byDist
+  def second: $it(2).dist
+  $it(1).dist -> #
+  <$second> 0 !
+  <..$second> -1 !
+  <> 1 !
+end byDist
 
-let finiteField = $field -> [i,j]($it -> (<?($it -> in($infinites))> -1 <> $it))
+templates sum
+  0 -> @
+  $it... -> ($@sum + $it -> @sum) -> void
+  $@ !
+end sum
 
-// part 1. See a4.tt for summarize and a8.tt for flatten. Need to rework summarize to allow constructed aggregation fields perhaps?
-$finiteField -> flatten -> [ $it... -> (<-1> <> {id: $it, count: 1}) ] -> summarize([(id:)], [(count: <Sum>)])
-  -> reduce(max(count:)) -> $it.count -> stdout
+def field: [$bb.left..$bb.right -> (def x: $it
+  [ $bb.top..$bb.bottom -> (def y: $it
+       [ $coordinates... -> { id: $it.id, dist: ($it.x - $x -> abs) + ($it.y - $y -> abs) } ]
+       -> quicksort@{comparator: byDist}
+       -> { closest: $it -> (<?($it(1).dist <$it(2).dist>)> 0 ! <> $it(1).id !),
+            sum: [ $it... -> $it.dist ] -> sum } !
+     )
+  ] !) ]
 
-// part 2.
-let totalDist = 10000
-let distBox = $bb -> { left: ([$it.left, $it.right - $totalDist] -> min),
-                       right: ([$it.right, $it.left + $totalDist] -> max,
-                       top: ([$it.top, $it.bottom - $totalDist] -> min,
-                       bottom: ([$it.bottom, $it.top + $totalDist] -> max}
+// part 1
+templates natural
+  def second: $it(2)
+  $it(1) -> #
+  <$second> 0 !
+  <..$second> -1 !
+  <> 1 !
+end natural
 
-let distanceField = [x:$distBox.left..$distBox.right, y:$distBox.top..$distBox.bottom](
-  [ $coordinates... ->  distance({x:$x, y:$y}) ] -> reduce(+))
+templates unique
+  $it(1) -> @
+  [ $it(2..-1)... -> #, $@ ] !
+  <~$@>
+    $@ !
+    $it -> @
+end unique
 
-$distanceField -> flatten -> [ $it... -> (<..!$totalDist>) ] -> $it.* -> stdout
+def infinites: [ $field(1;1..-1)..., $field(1..-1;1)..., $field(-1;1..-1)..., $field(1..-1;-1)...]
+  -> [ $it... -> $it.closest ] -> quicksort@{comparator: natural} -> unique
+
+templates in@{values:}
+  def what: $it
+  0 -> @
+  $values... -> #
+  $@ !
+  <$what>
+    1 -> @
+end in
+
+templates flatten
+  <[]>
+    $it... -> #
+  <>
+    $it!
+end flatten
+
+templates reduce@{operator:}
+  $it(1) -> @
+  $it(2..-1)... -> ([$@reduce, $it] -> $operator -> @reduce) -> void
+  $@ !
+end reduce
+
+templates count@{low:,high:}
+  [ $low..$high -> 0 ] -> @
+  $it... -> (def i: $it
+    [ $@count(1..$i-$low)...,
+        $@count($i-$low+1) -> $it + 1,
+        $@count($i-$low+2..-1)... ] -> @count) -> void
+  $@ !
+end count
+
+[ $field -> flatten -> $it.closest -> (<1.. ?($it -> in@{values: $infinites} <0>)> $it !) ]
+  -> count@{low: 1, high: $coordinates::length} -> reduce@{operator: max} -> stdout
+
+'
+' -> stdout
+
+// part 2
+[ $field -> flatten -> $it.sum -> (<..~10000> $it !) ] -> $it::length -> stdout
