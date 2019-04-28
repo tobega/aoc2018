@@ -1,49 +1,47 @@
-grammar nodes
-  node: { (nc=<INT>) (WS) (nm=<INT>) (WS) children:[ <node>[nc] ], metadata:[ <INT>[nm] ] }
+composer nodes
+  <node>
+  node: { (def nc: <INT>) (<WS>) (def nm: <INT>) (<WS>) children:[ <node>=$nc ], metadata:[ <metadata>=$nm ] } (<WS>?)
+  metadata: <INT> (<WS>?)
 end nodes
 
-let root = stdin -> nodes.node
+def root: stdin -> nodes
 
-#part 1
+//part 1
 
 templates sum
-  { sum: 0 } -> $sum
-  $it... -> $templates # Could we just do it inline here? Anonymous action?
-
-  <number>
-    {sum: $sum.sum + $it} -> $sum
+  0 -> @
+  $it... -> ($@sum + $it -> @sum) -> void
+  $@ !
 end sum
 
-// probably the rules going deeper should be the default so we just need the precursor and the <number> rule?
 // removes all array and object wrappings, giving a list of primitives
 templates flatten
-  [ $it -> $templates ]
+  [ $it -> # ] !
 
-  <[..]>
-    $it... -> $templates
+  <{}>
+    $it.children... -> #
+    $it.metadata... -> #
 
-  <{*}>
-    $it... -> $templates
-
-  <*:value=<*>>
-    $value -> $templates
-
-  <number>
-    $it
+  <>
+    $it !
 end flatten
 
 $root -> flatten -> sum -> stdout
 
-#part 2
+'
+' -> stdout
+
+//part 2
 
 templates nodeValues
-  [ $it -> $templates ]
+  [ $it -> # ] !
 
-  <{children:[0]}>
-    $it.metadata...
+  <{children:<[](0)>}>
+    $it.metadata... !
 
-  <{children:[1..]}>
-    $it.children($it.metadata...)... -> $templates
+  <{children:<[](1..)>}>
+    def max: $it.children::length
+    $it.children([$it.metadata... -> (<1..$max> $it!)])... -> #
 end nodeValues
 
 $root -> nodeValues -> sum -> stdout
