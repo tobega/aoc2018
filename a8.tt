@@ -1,6 +1,6 @@
 composer nodes
   <node>
-  node: { (def nc: <INT>) (<WS>) (def nm: <INT>) (<WS>) children:[ <node>=$nc ], metadata:[ <metadata>=$nm ] } (<WS>?)
+  node: { (def childCount: <INT>) (<WS>) (def metadataCount: <INT>) (<WS>) children:[ <node>=$childCount ], metadata:[ <metadata>=$metadataCount ] } (<WS>?)
   metadata: <INT> (<WS>?)
 end nodes
 
@@ -14,8 +14,7 @@ templates sum
   $@ !
 end sum
 
-// removes all array and object wrappings, giving a list of primitives
-templates flatten
+templates getMetadata
   [ $it -> # ] !
 
   <{}>
@@ -24,25 +23,23 @@ templates flatten
 
   <>
     $it !
-end flatten
+end getMetadata
 
-$root -> flatten -> sum -> stdout
+$root -> getMetadata -> sum -> stdout
 
 '
 ' -> stdout
 
 //part 2
 
-templates nodeValues
-  [ $it -> # ] !
-
+templates nodeValue
   <{children:<[](0)>}>
-    $it.metadata... !
+    $it.metadata -> sum !
 
   <{children:<[](1..)>}>
     def max: $it.children::length
-    $it.children([$it.metadata... -> (<1..$max> $it!)])... -> #
-end nodeValues
+    [ $it.children([$it.metadata... -> (<1..$max> $it!)])... -> # ] -> sum !
+end nodeValue
 
-$root -> nodeValues -> sum -> stdout
+$root -> nodeValue -> stdout
 
