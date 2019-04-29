@@ -1,0 +1,26 @@
+templates max
+  $it(1) -> @
+  $it(2..-1)... -> #
+  $@ !
+  <$@~..>
+    $it -> @
+end max
+
+templates game@{players:}
+  { scores: [ 1..$players -> 0 ], game: [0], current: 1 } ->@
+  1..$it -> #
+  $@.scores -> max !
+  <?($it mod 23 <0>)>
+    def player: ($it - 1) mod $players + 1
+    def remove: ($@.current + $@.game::length - 7) mod $@.game::length
+    { scores: [ $@.scores(1..$player-1)..., $@.scores($player) + $it + $@.game($remove), $@.scores($player+1..-1)... ],
+      game: [ $@.game(1..$remove-1)..., $@.game($remove+1..-1)... ],
+      current: $remove -> (<$@game.game::length> 1 ! <> $it !) } -> @
+  <>
+    def nextAfter: $@.current mod $@.game::length + 1
+    { scores: $@.scores,
+      game: [ $@.game(1..$nextAfter)..., $it, $@.game($nextAfter+1..-1)... ],
+      current: $nextAfter + 1 } -> @
+end game
+
+7114400 -> game@{players: 424} -> stdout
