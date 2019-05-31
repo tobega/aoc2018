@@ -6,53 +6,32 @@ templates max
     $it -> @
 end max
 
-processor Marble
-  { value: $it } -> @
-  templates before
-    { previous: $it } -> ...$@Marble -> @Marble
-  end before
-  templates after
-    { next: $it } -> ...$@Marble -> @Marble
-  end after
-  templates back
-    <1> $@Marble.previous !
-    <2..> $it - 1 -> $@Marble.previous::back !
-  end back
-  templates forward
-    <1> $@Marble.next !
-    <2..> $it - 1 -> $@Marble.next::forward !
-  end forward
-  templates value // should be source
-    $@Marble.value !
-  end value
-end Marble
+processor Game
+  {head: 1, tail: 1 ring: [1..2*$it -> 0]} -> @
+  templates play
+    <?($it mod 23 <0>)>
+      $@Game.ring($@Game.head-5..$@Game.head)... -> @Game.ring($@Game.tail-6..$@Game.tail-1)
+      def newHead: $@Game.head - 7
+      def score: $it + $@Game.ring($newHead)
+      $@Game.ring($newHead + 1) -> @Game.ring($newHead)
+      {head: $newHead, tail: $@Game.tail-6} -> ...@Game
+      $score !
+    <>
+      $@Game.ring($@Game.tail) -> @Game.ring($@Game.head+1)
+      $it -> @Game.ring($@Game.head+2)
+      {head: $@Game.head + 2, tail: $@Game.tail + 1} -> ...@Game
+      0 !
+  end play
+end Game
 
 templates game@{players:}
-  def start: 0 -> Marble
-  $start -> $start::before -> void // before should be marked as a sink
-  $start -> $start::after -> void // as should after
-  { scores: [ 1..$players -> 0 ], current: $start } -> @
+  def ring: $it -> Game
+  [ 1..$players -> 0 ] -> @
   1..$it -> #
-  $@.scores -> max !
-  <?($it mod 23 <0>)>
-    def player: ($it - 1) mod $players + 1
-    def remove: 7 -> $@.current::back
-    def prev: 1 -> $remove::back
-    def next: 1 -> $remove::forward
-    $prev -> $next::before -> void // sink
-    $next -> $prev::after -> void // sink
-    { scores: [ $@.scores(1..$player-1)..., $@.scores($player) + $it + $remove::value, $@.scores($player+1..-1)... ],
-      current: 1 -> $remove::forward } -> @
+  $@ -> max !
   <>
-    def placed: $it -> Marble
-    def at1: 1 -> $@.current::forward
-    def at2: 1 -> $at1::forward
-    $at1 -> $placed::before -> void
-    $at2 -> $placed::after -> void
-    $placed -> $at2::before -> void
-    $placed -> $at1::after -> void
-    { scores: $@.scores,
-      current: $placed } -> @
+    def player: (($it - 1) mod $players) + 1
+    $it -> $ring::play -> $it + $@($player) -> @($player)
 end game
 
-71144 -> game@{players: 424} -> stdout
+7114400 -> game@{players: 424} -> stdout
