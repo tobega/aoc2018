@@ -1,77 +1,87 @@
-grammar plants
-  data: ('initial state: ') { state: <STATE>, rules: <rules> }
+composer plants
+  (<'initial state: '>) { state: <~WS> (<WS>*), rules: <rules> }
 
-  STATE: [ <'[.#]+'>.chars -> [i](<'#'> $i) ]
+  rules: [ <rule>+ ]
 
-  rules: [ [ <rule>+ ] -> sort(<> $it(1).num - $it(2).num)-> ... -> (<*> $it.result) ]
-
-  rule: { num: <RULE_NUM>, (' => ') result: <IS_PLANT> }
-
-  RULE_NUM: <'[.#]+'>.chars -> encodeRule
-
-  IS_PLANT: '[.#]' -> ?=<'#'>
+  rule: { pattern: <'[.#]+'> (<' => '>), result: <'[.#]'> } (<WS>*)
 end plants
 
 templates encodeRule
-  {rule: 0}
-  $it... -> $templates
-  $encodeRule.rule
+  0 -> @
+  $it... -> #
+  $@ !
 
    <'#'>
-     { rule: ($encodeRule.rule << 1) + 1 } -> $encodeRule
+     ($@ * 2) + 1 -> @
 
    <'.'>
-     { rule: $encodeRule.rule << 1 } -> $encodeRule
+     $@ * 2 -> @
 end encodeRule
 
-templates<[<^T>]>:<^T> reduce(f <templates<[<^T>](2)>:<^T>>)
-  { result: $it(1) } -> $reduce
-  $it(2..)... -> $templates
-  $reduce.result
+templates reduce@{f:}
+  $it(1) -> @
+  $it(2..-1)... -> #
+  $@!
 
-  <*>
-    { result: ([ reduce.result, $it] -> $f) } -> $reduce
+  <>
+    [ $@, $it] -> $f -> @
 end reduce
 
-processor Game
-  mut state <[*]<number>>
-  rules <[32]<bool>>
+processor Plantation
+  $it -> @
 
-  source evolve<void>
+  templates debug
+    $@Plantation.state !
+  end debug
+
+  templates evolve // should be sink (or really sink&source)
     templates checkAndShift
-      { newState: $rules($it.locale) ?<true> ($it.pos -> $it.newState) ?<*> ($it.newState),
-              pos: $it.pos + 1, locale: (($it.locale << 1) & 0x1f) } -> $it
+      <{locale: <0>}>
+        def prev: $it
+        { pos: $prev.pos + 1 } -> ...$prev !
+      <>
+        def prev: $it
+        { newState: $@Plantation.rules($prev.locale) -> (<'#'> $prev.pos -> ...$prev.newState ! <> $prev.newState !),
+              pos: $prev.pos + 1, locale: (($prev.locale * 2) mod 32) } -> ...$prev !
     end checkAndShift
-    { pos: state(1) - 2, i: 1, locale: 0, newState: [] } -> $templates
 
-    <{pos: <$state($it.i)-2>}>
-      { locale: $it.locale | 1, i: $it.i + 1 } -> $it -> $templates
+    { pos: $@Plantation.state(1) - 2, i: 1, locale: 0, newState: [] } -> #
 
-    <{i: <..$state.*>}>
-      $it -> checkAndShift -> $templates
+    <{i: <..$@Plantation.state::length>}?($it.pos <$@Plantation.state($it.i)-2>)>
+      def prev: $it
+      { locale: $it.locale + 1, i: $it.i + 1 } -> ...$prev -> #
 
-    <{locale: <0!..>}>
-      $it -> checkAndShift -> $templates
+    <{i: <..$@Plantation.state::length>}>
+      $it -> checkAndShift -> #
 
-    <*>
-      {state: $it.newstate} -> $Game
+    <{locale: <0~..>}>
+      $it -> checkAndShift -> #
+
+    <>
+      {state: $it.newState} -> ...@Plantation
   end evolve
 
-   source potSum
-     $state -> reduce(<> $it(1) + $it(2))
-   end potSum
+  templates potSum // should be source
+      templates sum
+        $it(1) + $it(2) !
+      end sum
+    $@Plantation.state -> reduce@{f:sum} !
+  end potSum
 
-end Game
+end Plantation
 
-grammar<string> arglist
-  args: { <generations>? file: <'.+'> }
+templates makeIndexed
+  [1..$it::length -> '.'] -> @
+  $it... -> #
+  $@!
+  <{rule: <1..>}>
+    def rule: $it.rule
+    $it.result -> @($rule)
+end makeIndexed
 
-  generations: generations: (<'--generations'|'-g'>) (<'\\d+'> -> <number>.parse)
-end args
+def startState: stdin -> ($it! ' '!) -> ...'' -> plants -> { state: [$it.state...] -> [i](<'#'> $i - 1 !),
+  rules: [ $it.rules... -> { rule: $it.pattern -> encodeRule, result: $it.result }] -> makeIndexed}
 
-main(args: <[*]<string>>)
-  let input = args -> arglist.args
-  let game = input.file -> readfile -> plants.data -> <Game>.new
-  [1..input.generations](game.evolve)
-  game.potSum -> stdout
-end main
+def part1: $startState -> Plantation
+1..20 -> $part1::evolve -> void
+$part1::potSum -> stdout
