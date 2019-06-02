@@ -1,51 +1,31 @@
-let warmup = '635041'
+def warmup: 2018
 
 processor Recipes
-  mut recipes: [3,7]
-  mut elf: 1
-  mut alf: 2
+  { recipes: [3,7], elf: 1, alf: 2 } -> @
 
-  source concoct<void>
-    $let brew = $recipes(elf) + $recipes(alf)
-    $brew ?<..9> ($brew -> recipes) ?<*> (
-      ($brew ~/ 10) -> recipes
-      ($brew % 10) -> recipes)
-     {elf: $elf + ($recipes($elf) % $recipes.* + 1),
-      alf: $alf + ($recipes($alf) % $recipes.* + 1) } -> $#
+  templates concoct // should be source
+    def brew: $@Recipes.recipes($@Recipes.elf) + $@Recipes.recipes($@Recipes.alf)
+    $brew -> (<..9> $brew -> ...@Recipes.recipes
+      <>
+      ($brew / 10) -> ...@Recipes.recipes
+      ($brew mod 10) -> ...@Recipes.recipes) -> void
+    {elf: ($@Recipes.elf + $@Recipes.recipes($@Recipes.elf)) mod $@Recipes.recipes::length + 1,
+      alf: ($@Recipes.alf + $@Recipes.recipes($@Recipes.alf)) mod $@Recipes.recipes::length + 1 } -> ...@Recipes
   end concoct
 
-  mut templates<number> extract10After
-    { given: $it } -> extract10After
-    $#templates
+  templates extract10After
+    1..$it -> concoct -> void
+    $it -> #
 
-    #<{recipes: <..($given+10)>}>
-      $concoct
-      $#templates
+    <$@Recipes.recipes::length-10..>
+      0 -> concoct -> void
+      $it -> #
 
-    #<*>
-      $recipes($it+1..$it+10)... -> toString -> ''
+    <>
+      $@Recipes.recipes($it+1..$it+10)... -> ...'' !
   end extract10After
-
-  mut templates<[*]<number>> findCountBefore
-    $it -> $templates
-
-    <$recipes(-$it.*..-1)>
-      $recipes.* - $it.*
-
-    <$recipes(-$it.*-1..-2)>
-      $recipes.* - $it.* - 1
-
-    <*>
-      $concoct
-      $it -> $templates
-  end findCountBefore
 end Recipes
 
 // part 1
-let recipes = <Recipes>.new
-warmup -> <int>.parse -> recipes.extract10After -> stdout
-
-// part 2
-let recipes = <Recipes>.new
-warmup.chars -> <int>.parse -> recipes.findCountBefore -> stdout
-
+def scoreboard: 0 -> Recipes
+$warmup -> $scoreboard::extract10After -> stdout
