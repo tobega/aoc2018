@@ -1,4 +1,6 @@
-def warmup: 2018
+def warmup: 635041
+def test1: 2018
+def test2: 51589
 
 processor Recipes
   { recipes: [3,7], elf: 1, alf: 2 } -> @
@@ -24,8 +26,28 @@ processor Recipes
     <>
       $@Recipes.recipes($it+1..$it+10)... -> ...'' !
   end extract10After
+
+  templates findSequence
+    composer parseInt <INT> end parseInt
+    def sequence: ['$it;'... -> parseInt ]
+    templates matches
+      def prefix: $it
+      1 -> @
+      $sequence -> [i](<~$@Recipes.recipes($prefix+$i)> 0 -> @matches) -> void
+      $@ !
+    end matches
+    0 -> #
+    <$@Recipes.recipes::length-$sequence::length..>
+      0 -> concoct !
+      $it -> #
+    <?($it -> matches <1>)> $it !
+    <> $it + 1 -> #
+  end findSequence
 end Recipes
 
 // part 1
 def scoreboard: 0 -> Recipes
-$warmup -> $scoreboard::extract10After -> stdout
+$test1 -> $scoreboard::extract10After -> stdout
+
+//part 2
+$test2 -> $scoreboard::findSequence -> stdout
