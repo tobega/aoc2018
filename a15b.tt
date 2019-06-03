@@ -1,0 +1,10 @@
+def input: [ stdin -> [ $it... ] ]
+
+templates flatten
+  [ $it -> # ] !
+  <[]> $it... -> #
+  <> $it !
+end flatten
+
+def gnomes: $input -> [i,j](<'G'> { row: $i, col: $j } !) -> flatten
+$gnomes -> stdout
