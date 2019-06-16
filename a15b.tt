@@ -6,5 +6,67 @@ templates flatten
   <> $it !
 end flatten
 
-def gnomes: $input -> [i,j](<'G'> { row: $i, col: $j } !) -> flatten
-$gnomes -> stdout
+templates bestPosition
+  <[] ?($it(1).row <$it(2).row~..>)>
+    1 !
+
+  <[] ?($it(1).row <..~$it(2).row>)>
+    -1 !
+
+  <[] ?($it(1).col <$it(2).col~..>)>
+    1 !
+
+  <>
+    -1 !
+end bestPosition
+
+templates first@{comp:}
+  $it(1) -> @
+  $it(2..-1) -> #
+  $@!
+  <?([$it, $@] -> comp <..~0>)> $it -> @
+end first
+
+processor Battleground
+  $it -> stdout
+end Battleground
+
+processor Battle@{setCombatValues:, isFightDecided:}
+  { battleground: $it -> Battleground,
+    beings: $it -> [i,j](<'G'|'E'> { type: $it, row: $i, col: $j } !)
+      -> flatten -> setCombatValues } -> @
+
+  // should be sink
+  templates strike@{damage:}
+    def pos: $it
+    def index: $@Battle.beings -> [i](<$pos> $i !)
+    ($@Battle.beings($index).hitPoints - $damage) -> @Battle.beings($index).hitPoints
+  end strike
+
+  // should be sink
+  templates takeTurn
+    def who: $it
+    $@Battle.beings($who) -> $@Battle.battleground::maybeMove -> @Battle.beings($who)
+    [ $@Battle.beings($who) -> $@Battle.battleground::neighbours
+      -> hasEnemy@{me: $@Battle.beings($who).type} ]
+      -> first@{comp: bestPosition} -> strike@{damage: $@Battle.beings($who).attackValue}
+      -> void
+  end takeTurn
+
+  // should be source
+  templates run
+    {round: -1, stillFighting: 0} -> @
+    $@ -> #
+
+    <{stillFighting: <0>}>
+      $@.round + 1 -> @.round
+      $@Battle.beings -> sort@{comp: bestPosition}...
+        -> (<{hitPoints: <1..>}> $it !)
+        -> takeTurn -> void
+      $@Battle.beings -> isFightDecided -> @.stillFighting
+      $@ -> #
+
+    <>
+      [ $@Battle.beings... -> (<{hitPoints: <1..>}> $it.hitPoints !) ] -> sum -> $it * $@.round !
+  end run
+end Battle
