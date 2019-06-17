@@ -11,7 +11,7 @@ templates reactAll
     $@ !
   <>
   $it::length -> @
-  $it... -> ...'' -> polymerReaction -> #
+  '$($it...)' -> polymerReaction -> #
 end reactAll
 
 def polymer: [ stdin... ]

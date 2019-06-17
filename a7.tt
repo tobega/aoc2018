@@ -68,7 +68,7 @@ templates multi@{workers:, delay:}
  <{workers: <[](..$workers-1)>, ready: <[](1..)>}>
   def current: $it
   def next: $current.ready -> reduce@{operator:min}
-  { workers: { task: $next, time: $delay + ($next -> taskIndex) } -> ...$current.workers,
+  { workers: [ $current.workers..., {task: $next, time: $delay + ($next -> taskIndex) }],
     ready: [$current.ready... -> (<~$next> $it!)]
     unresolved: $current.unresolved } -> #
 

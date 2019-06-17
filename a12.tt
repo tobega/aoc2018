@@ -37,19 +37,18 @@ processor Plantation
   templates evolve // should be sink (or really sink&source)
     templates checkAndShift
       <{locale: <0>}>
-        def prev: $it
-        { pos: $prev.pos + 1 } -> ...$prev !
+        { $it..., pos: $it.pos + 1 } !
       <>
         def prev: $it
-        { newState: $@Plantation.rules($prev.locale) -> (<'#'> $prev.pos -> ...$prev.newState ! <> $prev.newState !),
-              pos: $prev.pos + 1, locale: (($prev.locale * 2) mod 32) } -> ...$prev !
+        { $prev..., newState: $@Plantation.rules($prev.locale) -> (<'#'> [$prev.newState..., $prev.pos] ! <> $prev.newState !),
+              pos: $prev.pos + 1, locale: (($prev.locale * 2) mod 32) } !
     end checkAndShift
 
     { pos: $@Plantation.state(1) - 2, i: 1, locale: 0, newState: [] } -> #
 
     <{i: <..$@Plantation.state::length>}?($it.pos <$@Plantation.state($it.i)-2>)>
       def prev: $it
-      { locale: $it.locale + 1, i: $it.i + 1 } -> ...$prev -> #
+      { $prev..., locale: $it.locale + 1, i: $it.i + 1 } -> #
 
     <{i: <..$@Plantation.state::length>}>
       $it -> checkAndShift -> #
@@ -79,7 +78,7 @@ templates makeIndexed
     $it.result -> @($rule)
 end makeIndexed
 
-def startState: stdin -> ($it! ' '!) -> ...'' -> plants -> { state: [$it.state...] -> [i](<'#'> $i - 1 !),
+def startState: '$(stdin -> ($it! ' '!))' -> plants -> { state: [$it.state...] -> [i](<'#'> $i - 1 !),
   rules: [ $it.rules... -> { rule: $it.pattern -> encodeRule, result: $it.result }] -> makeIndexed}
 
 def part1: $startState -> Plantation

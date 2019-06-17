@@ -2,7 +2,7 @@ composer coord
   { x: <INT> (<', '>) y: <INT> }
 end coord
 
-def coordinates: [ stdin -> coord ] -> [i]($it -> ...{ id: $i } !)
+def coordinates: [ stdin -> coord ] -> [i]({ $it..., id: $i } !)
 
 templates min
   <?($it(1)<..$it(2)>)> $it(1) !
@@ -39,7 +39,7 @@ templates quicksort@{comparator:}
       <?([$it, $pivot] -> $comparator <..0>)>
         $it !
       <>
-        $it -> ...$@quicksort -> @quicksort
+        $it -> ...@quicksort
      )] -> quicksort@{comparator:$comparator}..., $pivot, $@ -> quicksort@{comparator:$comparator}... ] !
    <>
      $it !

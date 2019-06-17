@@ -20,7 +20,7 @@ templates twosAndThrees
     $@ -> #
 
   <{rest:<[](2..)>}>
-    $it.rest -> countOne -> ...$@ -> @
+    $it.rest -> countOne -> ...@
     $@ -> #
 
   <>
@@ -51,7 +51,7 @@ templates onediff
     templates diffs
       0 -> @
       [ $it... ] -> [i](<~$@onediff($i)> 1 + $@diffs -> @diffs) -> void
-      $it -> (<?($@diffs<1>)> $@onediff... -> ...'' ! $it !) !
+      $it -> (<?($@diffs<1>)> '$($@onediff...)' ! $it !) !
     end diffs
     $it(2..-1)... -> diffs !
     $it(2..-1) -> #
@@ -59,7 +59,7 @@ end onediff
 
 templates collate
   [ $it(1)... ] -> @
-  [ $it(2)... ] -> [i](<$@collate($i)> $it !)... -> ...'' !
+  '$([ $it(2)... ] -> [i](<$@collate($i)> $it !)...)' !
 end collate
 
 $tags -> onediff -> collate -> stdout

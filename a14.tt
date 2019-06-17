@@ -24,7 +24,7 @@ processor Recipes
       $it -> #
 
     <>
-      $@Recipes.recipes($it+1..$it+10)... -> ...'' !
+      '$($@Recipes.recipes($it+1..$it+10)...)' !
   end extract10After
 
   templates findSequence
