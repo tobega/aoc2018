@@ -70,3 +70,24 @@ processor Battle@{setCombatValues:, isFightDecided:}
       [ $@Battle.beings... -> (<{hitPoints: <1..>}> $it.hitPoints !) ] -> sum -> $it * $@.round !
   end run
 end Battle
+
+// part 1
+
+  templates basicCombatValues
+    {$it..., attackValue: 3, hitPoints: 200} !
+  end basicCombatValues
+
+  templates oneRaceStanding
+    {elfAlive: 0, goblinAlive: 0} -> @
+    $it... -> #
+    $@ -> (<{goblinAlive: <1>, elfAlive: <1>}> 0! <> 1!) !
+
+    <{type: <'G'>, hitPoints: <1..>}>
+      {goblinAlive: 1} -> ...@
+
+    <{type: <'E'>, hitPoints: <1..>}>
+      {elfAlive: 1} -> ...@
+  end oneRaceStanding
+
+def battle: $input -> Battle@{setCombatValues:basicCombatValues, isFightDecided:oneRaceStanding}
+$battle::run -> stdout
