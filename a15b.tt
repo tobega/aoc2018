@@ -50,9 +50,34 @@ processor Battleground
     $@Battleground([$it.row-1, $it.row+1]; $it.col)... !
   end neighbours
 
+  templates inRange@{target:}
+    0 -> @
+    $it -> neighbours
+      -> (<{contains:<$target>}> 1 -> @inRange) -> void
+    $@ !
+  end inRange
+
   templates maybeMove@{target:}
-    '$it;
-' -> stdout
+    $it -> @
+    $it -> inRange@{target:$target} -> (<0> $it !) -> findDirectionToMove -> #
+
+    <'up'>
+      {dr:-1, dc:0} -> #
+
+    <'left'>
+      {dr:0, dc:-1} -> #
+
+    <'right'>
+      {dr:0, dc:1} -> #
+
+    <'down'>
+      {dr:1, dc:0} -> #
+
+    <{dr:<>,dc:<>}>
+      def move: $it
+      {contains:'.'} -> ...@Battleground($@.row; $@.col)
+      {contains: $@.type} -> ...@Battleground($@.row + $move.dr; $@.col + $move.dc)
+      $@Battleground($@.row + $move.dr; $@.col + $move.dc) !
   end maybeMove
 end Battleground
 
