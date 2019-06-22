@@ -22,34 +22,77 @@ end bestPosition
 
 templates first@{comp:}
   $it(1) -> @
-  $it(2..-1) -> #
+  $it(2..-1)... -> #
   $@!
   <?([$it, $@] -> comp <..~0>)> $it -> @
 end first
 
+templates sort@{comp:}
+  [] -> @
+  $it -> #
+  <[](2..)>
+    def pivot: $it(1)
+    [ [ $it(2..-1)... -> (
+      <?([$it, $pivot] -> $comp <..0>)>
+        $it !
+      <>
+        $it -> ...@sort
+     )] -> sort@{comp:comp}..., $pivot, $@ -> sort@{comp:comp}... ] !
+   <>
+     $it !
+end sort
+
 processor Battleground
-  $it -> stdout
+  $it -> [i,j]({ contains: $it, row: $i, col: $j } !) -> @
+
+  templates neighbours
+    $@Battleground($it.row; [$it.col-1, $it.col+1])... !
+    $@Battleground([$it.row-1, $it.row+1]; $it.col)... !
+  end neighbours
+
+  templates maybeMove@{target:}
+    '$it;
+' -> stdout
+  end maybeMove
 end Battleground
 
 processor Battle@{setCombatValues:, isFightDecided:}
   { battleground: $it -> Battleground,
-    beings: $it -> [i,j](<'G'|'E'> { type: $it, row: $i, col: $j } !)
-      -> flatten -> setCombatValues } -> @
+    beings: [ $it -> [i,j](<'G'|'E'> { type: $it, row: $i, col: $j } !)
+      -> flatten... -> setCombatValues] } -> @
+
+  templates beingIndex
+    def col:$it.col
+    def row: $it.row
+    $@Battle.beings -> [i](<{col:<$col>, row:<$row>}> $i !) -> $it(1) !
+  end beingIndex
 
   // should be sink
   templates strike@{damage:}
     def pos: $it
-    def index: $@Battle.beings -> [i](<$pos> $i !)
+    def index: $it -> beingIndex
     ($@Battle.beings($index).hitPoints - $damage) -> @Battle.beings($index).hitPoints
   end strike
 
+  templates enemyType
+    <'G'> 'E' !
+    <'E'> 'G' !
+  end enemyType
+
+  templates adjacentEnemy@{me:}
+    def enemy: $me -> enemyType
+    $it -> $@Battle.battleground::neighbours
+      -> (<{contains:<$enemy>}> $it !) !
+  end adjacentEnemy
+
   // should be sink
   templates takeTurn
-    def who: $it
-    $@Battle.beings($who) -> $@Battle.battleground::maybeMove -> @Battle.beings($who)
-    [ $@Battle.beings($who) -> $@Battle.battleground::neighbours
-      -> hasEnemy@{me: $@Battle.beings($who).type} ]
-      -> first@{comp: bestPosition} -> strike@{damage: $@Battle.beings($who).attackValue}
+    def who: $it -> beingIndex
+    def enemy: $it.type -> enemyType
+    $@Battle.beings($who) -> $@Battle.battleground::maybeMove@{target:$enemy}
+      -> ...@Battle.beings($who)
+    [ $@Battle.beings($who) -> adjacentEnemy@{me: $@Battle.beings($who).type}
+    ] -> (<[](1..)> $it!) -> first@{comp: bestPosition} -> strike@{damage: $@Battle.beings($who).attackValue}
       -> void
   end takeTurn
 
