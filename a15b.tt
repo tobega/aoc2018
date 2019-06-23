@@ -6,6 +6,14 @@ templates flatten
   <> $it !
 end flatten
 
+templates sum
+  $it(1) -> @
+  $it(2..-1)... -> #
+  $@ !
+  <>
+    $it + $@ -> @
+end sum
+
 templates bestPosition
   <[] ?($it(1).row <$it(2).row~..>)>
     1 !
@@ -27,6 +35,14 @@ templates first@{comp:}
   <?([$it, $@] -> comp <..~0>)> $it -> @
 end first
 
+templates lowest@{comp:}
+  [$it(1)] -> @
+  $it(2..-1)... -> #
+  $@!
+  <?([$it, $@(1)] -> comp <0>)> $it -> ...@
+  <?([$it, $@(1)] -> comp <..~0>)> [$it] -> @
+end lowest
+
 templates sort@{comp:}
   [] -> @
   $it -> #
@@ -45,6 +61,11 @@ end sort
 processor Battleground
   $it -> [i,j]({ contains: $it, row: $i, col: $j } !) -> @
 
+  templates remove
+    def pos: $it
+    '.' -> @Battleground($pos.row; $pos.col).contains
+  end remove
+
   templates neighbours
     $@Battleground($it.row; [$it.col-1, $it.col+1])... !
     $@Battleground([$it.row-1, $it.row+1]; $it.col)... !
@@ -57,9 +78,72 @@ processor Battleground
     $@ !
   end inRange
 
+  templates bestSquareInRange@{target:}
+    [] -> @
+    $it... -> #
+    $@ -> (<[](1..)> $it!) -> first@{comp:bestPosition} !
+
+    <?($it -> inRange@{target:$target} <1>)>
+      $it -> ...@
+  end bestSquareInRange
+
+  templates findDirectionToMove@{target:}
+      templates moveEntry@{firstMove:}
+        <{contains:<'\.'>}>
+          { $it..., move: $firstMove } !
+      end moveEntry
+
+      templates nextMoves
+        def move: $it.move
+        $it -> neighbours -> moveEntry@{firstMove:$move} !
+      end nextMoves
+    templates prioritizedDirection
+      <{a:<'up'>}|{b:<'up'>}>
+        'up'!
+
+      <{a:<'left'>}|{b:<'left'>}>
+        'left'!
+
+      <{a:<'right'>}|{b:<'right'>}>
+       'right'!
+
+      <{a:<'down'>}|{b:<'down'>}>
+        'down'!
+    end prioritizedDirection
+
+    def combattant: $it
+    {visited: $@Battleground,
+        atDistance: [
+            $@Battleground($combattant.row - 1; $combattant.col) -> moveEntry@{firstMove: 'up'},
+            $@Battleground($combattant.row; $combattant.col - 1) -> moveEntry@{firstMove: 'left'},
+            $@Battleground($combattant.row; $combattant.col + 1) -> moveEntry@{firstMove: 'right'},
+            $@Battleground($combattant.row + 1; $combattant.col) -> moveEntry@{firstMove: 'down'}
+        ]
+    } -> @
+    [$@.atDistance -> bestSquareInRange@{target:$target}] -> #
+
+    <[](1..)>
+      $it(1).move !
+
+    <?($@.atDistance <[](1..)>)>
+      $@.atDistance... -> ($it -> {row: $it.row, col: $it.col, contains: 'visited'}
+        -> ...@findDirectionToMove.visited($it.row;$it.col)) -> void
+      def next: [$@.atDistance... -> nextMoves
+        -> (<?($@findDirectionToMove.visited($it.row;$it.col) <{contains:<'\.'>}>)> $it !)
+      ]
+      $next... -> (def this: $it
+        {move: 'any'} -> ...@findDirectionToMove.visited($this.row;$this.col)) -> void
+      $next... -> (def this: $it
+         {a: $it.move, b: $@findDirectionToMove.visited($it.row;$it.col).move}  -> prioritizedDirection
+           -> @findDirectionToMove.visited($this.row;$this.col).move) -> void
+      [ $next... -> (<?($it.move <$@findDirectionToMove.visited($it.row;$it.col).move>)> $it !)
+      ] -> @.atDistance
+      [$@.atDistance -> bestSquareInRange@{target:$target}] -> #
+  end findDirectionToMove
+
   templates maybeMove@{target:}
     $it -> @
-    $it -> inRange@{target:$target} -> (<0> $it !) -> findDirectionToMove -> #
+    $it -> inRange@{target:$target} -> (<0> $@maybeMove !) -> findDirectionToMove@{target:$target} -> #
 
     <'up'>
       {dr:-1, dc:0} -> #
@@ -84,19 +168,20 @@ end Battleground
 processor Battle@{setCombatValues:, isFightDecided:}
   { battleground: $it -> Battleground,
     beings: [ $it -> [i,j](<'G'|'E'> { type: $it, row: $i, col: $j } !)
-      -> flatten... -> setCombatValues] } -> @
+      -> flatten -> [i]({$it..., index: $i} !) ... -> setCombatValues] } -> @
 
-  templates beingIndex
+  templates liveBeingAtPosition
     def col:$it.col
     def row: $it.row
-    $@Battle.beings -> [i](<{col:<$col>, row:<$row>}> $i !) -> $it(1) !
-  end beingIndex
+    $@Battle.beings... -> (<{col:<$col>, row:<$row>, hitPoints: <1..>}> $it !) !
+  end liveBeingAtPosition
 
   // should be sink
   templates strike@{damage:}
     def pos: $it
-    def index: $it -> beingIndex
+    def index: $it.index
     ($@Battle.beings($index).hitPoints - $damage) -> @Battle.beings($index).hitPoints
+    $@Battle.beings($index).hitPoints -> (<..0> $pos!) -> $@Battle.battleground::remove -> void
   end strike
 
   templates enemyType
@@ -112,12 +197,20 @@ processor Battle@{setCombatValues:, isFightDecided:}
 
   // should be sink
   templates takeTurn
-    def who: $it -> beingIndex
+    def who: $it.index
     def enemy: $it.type -> enemyType
-    $@Battle.beings($who) -> $@Battle.battleground::maybeMove@{target:$enemy}
-      -> ...@Battle.beings($who)
-    [ $@Battle.beings($who) -> adjacentEnemy@{me: $@Battle.beings($who).type}
-    ] -> (<[](1..)> $it!) -> first@{comp: bestPosition} -> strike@{damage: $@Battle.beings($who).attackValue}
+    $@Battle.beings($who) -> #
+
+    <{hitPoints:<1..>}>
+    templates lowPoints
+      <?($it(1).hitPoints <$it(2).hitPoints>)> 0 !
+      <?($it(1).hitPoints <..$it(2).hitPoints>)> -1 !
+      <> 1 !
+    end lowPoints
+    $it -> $@Battle.battleground::maybeMove@{target:$enemy}
+      -> { row: $it.row, col: $it.col} -> ...@Battle.beings($who)
+    [ $@Battle.beings($who) -> adjacentEnemy@{me: $@Battle.beings($who).type} -> liveBeingAtPosition
+    ] -> (<[](1..)> $it!) -> lowest@{comp:lowPoints} -> first@{comp: bestPosition} -> strike@{damage: $@Battle.beings($who).attackValue}
       -> void
   end takeTurn
 
