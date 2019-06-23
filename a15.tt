@@ -1,260 +1,294 @@
-grammar cave
-  #{ beings: [] }: { grid: <grid>, beings: $cave.beings }
+def input: [ stdin -> [ $it... ] ]
 
-  grid#{ row: 1, col: 1 }: [ <row>+ ]
+templates flatten
+  [ $it -> # ] !
+  <[]> $it... -> #
+  <> $it !
+end flatten
 
-  row: [ <square>+ ] (<'\n'>) ({ row: $grid.row + 1, col: 1 } -> $grid)
+templates sum
+  $it(1) -> @
+  $it(2..-1)... -> #
+  $@ !
+  <>
+    $it + $@ -> @
+end sum
 
-  square: { type: <<rock>|<cavern>>, row: $grid.row, col: $grid.col } ({col: $grid.col + 1} -> $grid)
+templates bestPosition
+  <[] ?($it(1).row <$it(2).row~..>)>
+    1 !
 
-// Do we have enums?
-  rock: (<'#'>) 'rock'
+  <[] ?($it(1).row <..~$it(2).row>)>
+    -1 !
 
-  cavern: ({ code: <'[.GE]'>} -> $cavern) 'cavern' <occupant>?
+  <[] ?($it(1).col <$it(2).col~..>)>
+    1 !
 
-  occupant: (<<gnome>|<elf>>) occupant: $occupant.type ({ type: $occupant.type, row: $grid.row, col: $grid.col} -> $cave.beings)
-
-// Do we have object references? Or match-selection from arrays?
-  gnome: ($cavern.code ?<'G'>) ({type: 'gnome'} -> $occupant)
-
-  elf: ($cavern.code ?<'E'>) ({type: 'elf'} -> $occupant)
-end cave
-
-stereotype position <{row:<number>, col:<number>}>
-stereotype square <position+{type: <'rock'|'cavern'>, occupant:<void|'gnome'|'elf'>}
-stereotype being <position+{type:<'gnome'|'elf'>, attackValue: <number>, hitPoints: <number>}>
-
-templates enemy
-  $it ?<'elf'>('gnome') ?<'gnome'>('elf'))
-end enemy
-
-templates<[2]<position>> bestPosition
-  <[] ?($it(1).row <$it(2).row!..>)>
-    1
-
-  <[] ?($it(1).row <..!$it(2).row>)>
-    -1
-
-  <[] ?($it(1).col <$it(2).col!..>}>}>
-    1
-
-  <*>
-    -1
+  <>
+    -1 !
 end bestPosition
 
-processor Battleground
-  mut grid<[*,*]<square>>
+templates first@{comp:}
+  $it(1) -> @
+  $it(2..-1)... -> #
+  $@!
+  <?([$it, $@] -> comp <..~0>)> $it -> @
+end first
 
-  templates<position> neighbours
-    [ $grid($it.row, [$it.col-1, $it.col+1])... ,
-      $grid([$it.row-1, $it.row+1], $it.col)... ]
+templates lowest@{comp:}
+  [$it(1)] -> @
+  $it(2..-1)... -> #
+  $@!
+  <?([$it, $@(1)] -> comp <0>)> $it -> ...@
+  <?([$it, $@(1)] -> comp <..~0>)> [$it] -> @
+end lowest
+
+templates sort@{comp:}
+  [] -> @
+  $it -> #
+  <[](2..)>
+    def pivot: $it(1)
+    [ [ $it(2..-1)... -> (
+      <?([$it, $pivot] -> $comp <..0>)>
+        $it !
+      <>
+        $it -> ...@sort
+     )] -> sort@{comp:comp}..., $pivot, $@ -> sort@{comp:comp}... ] !
+   <>
+     $it !
+end sort
+
+processor Battleground
+  $it -> [i,j]({ contains: $it, row: $i, col: $j } !) -> @
+
+  templates remove
+    def pos: $it
+    '.' -> @Battleground($pos.row; $pos.col).contains
+  end remove
+
+  templates neighbours
+    $@Battleground($it.row; [$it.col-1, $it.col+1])... !
+    $@Battleground([$it.row-1, $it.row+1]; $it.col)... !
   end neighbours
 
-  templates<{row:, col:}> inRange(enemy <'gnome'|'elf'>)
-    false -> $inRange
-    $it -> neighbours -> $templates
-    $inRange
-
-    <{occupant: <$enemy>}> // Specifically, void never matches unless explicitly specified
-      true -> $inRange // Or maybe something like exit or return?
+  templates inRange@{target:}
+    0 -> @
+    $it -> neighbours
+      -> (<{contains:<$target>}> 1 -> @inRange) -> void
+    $@ !
   end inRange
 
-  templates<[<square>]> bestSquareInRange(enemy <'gnome'|'elf'>)
-    $it... -> $templates
-    $bestSquareInRange
+  templates bestSquareInRange@{target:}
+    [] -> @
+    $it... -> #
+    $@ -> (<[](1..)> $it!) -> first@{comp:bestPosition} !
 
-    <?($it -> inRange($enemy))>
-      $let s = $it
-      [$it, $bestSquareInRange] -> bestPosition -> (<-1> $s -> $bestSquareInRange)
+    <?($it -> inRange@{target:$target} <1>)>
+      $it -> ...@
   end bestSquareInRange
 
-  stereotype direction <'up'|'left'|'right'|'down'>
+  templates findDirectionToMove@{target:}
+      templates moveEntry@{firstMove:}
+        <{contains:<'\.'>}>
+          { $it..., move: $firstMove } !
+      end moveEntry
 
-  templates moveEntry(firstMove <direction>)
-    <{type: 'cavern', occupant: void}>
-      { key: $it, value: $firstMove }
-  end moveEntry
+      templates nextMoves
+        def move: $it.move
+        $it -> neighbours -> moveEntry@{firstMove:$move} !
+      end nextMoves
+    templates prioritizedDirection
+      <{a:<'up'>}|{b:<'up'>}>
+        'up'!
 
-  templates<{key: <square>, value: <direction>}> nextMoves
-    $it.value -> $nextMoves
-    // figure out rules for list-indices, may have to send through flatten
-    $grid($it.key.row, [$it.key.col-1, $it.key.col+1])... -> moveEntry($it.value)
-    $grid([$it.key.row-1, $it.row+1], $it.col)... -> moveEntry($it.value)
-  end nextMoves
+      <{a:<'left'>}|{b:<'left'>}>
+        'left'!
 
-  templates<{a:<direction>, b:<direction>}> prioritizedDirection
-    <{*:'up'}>
-      'up'
+      <{a:<'right'>}|{b:<'right'>}>
+       'right'!
 
-    <{*:'left'}>
-      'left'
+      <{a:<'down'>}|{b:<'down'>}>
+        'down'!
+    end prioritizedDirection
 
-    <{*:'right'}>
-      'right'
+    def combattant: $it
+    {visited: $@Battleground,
+        atDistance: [
+            $@Battleground($combattant.row - 1; $combattant.col) -> moveEntry@{firstMove: 'up'},
+            $@Battleground($combattant.row; $combattant.col - 1) -> moveEntry@{firstMove: 'left'},
+            $@Battleground($combattant.row; $combattant.col + 1) -> moveEntry@{firstMove: 'right'},
+            $@Battleground($combattant.row + 1; $combattant.col) -> moveEntry@{firstMove: 'down'}
+        ]
+    } -> @
+    [$@.atDistance -> bestSquareInRange@{target:$target}] -> #
 
-    <*:'down'>
-      'down'
-  end prioritizedDirection
+    <[](1..)>
+      $it(1).move !
 
-  source findDirectionToMove(combattant: <being>)
-    {visited: ($grid($combattant.row, $combattant.col) -> <Set>.new),
-        atDistance: <Map>.new
-    } -> $findDirectionToMove
-    $grid($combattant.row - 1, $combattant.col) -> moveEntry('up') -> $findDirectionToMove.atDistance.put
-    $grid($combattant.row, $combattant.col - 1) -> moveEntry('left') -> $findDirectionToMove.atDistance.put
-    $grid($combattant.row, $combattant.col + 1) -> moveEntry('right') -> $findDirectionToMove.atDistance.put
-    $grid($combattant.row + 1, $combattant.col) -> moveEntry('down') -> $findDirectionToMove.atDistance.put
-    $findDirectionToMove -> $templates
-
-    <{atDistance: <=target($it.keys -> bestSquareInRange($combattant.type -> enemy))<square>>}>
-      $target -> $it.atDistance.get
-
-    <{atDistance: <?($it.isEmpty)>}>
-      void
-
-    <*>
-      $let nextDistance = <Map>.new
-      $findDirectionToMove.atDistance.keys -> $findDirectionToMove.visited.addAll
-      $findDirectionToMove.atDistance.entries... -> nextMoves -> <?!($it.key -> findDirectionToMove.visited.contains)>
-        -> { key: $it.key,
-             value: ({a: $it.value, b: ($it.square -> $nextDistance.get)} -> prioritizedDirection)
-           } -> $nextDistance.put // check-then-act race here, should we have an update method on Map? Or do this by 'fold'?
-      {atDistance: $nextDistance} -> $findDirectionToMove
-      $findDirectionToMove -> $templates
+    <?($@.atDistance <[](1..)>)>
+      $@.atDistance... -> ($it -> {row: $it.row, col: $it.col, contains: 'visited'}
+        -> ...@findDirectionToMove.visited($it.row;$it.col)) -> void
+      def next: [$@.atDistance... -> nextMoves
+        -> (<?($@findDirectionToMove.visited($it.row;$it.col) <{contains:<'\.'>}>)> $it !)
+      ]
+      $next... -> (def this: $it
+        {move: 'any'} -> ...@findDirectionToMove.visited($this.row;$this.col)) -> void
+      $next... -> (def this: $it
+         {a: $it.move, b: $@findDirectionToMove.visited($it.row;$it.col).move}  -> prioritizedDirection
+           -> @findDirectionToMove.visited($this.row;$this.col).move) -> void
+      [ $next... -> (<?($it.move <$@findDirectionToMove.visited($it.row;$it.col).move>)> $it !)
+      ] -> @.atDistance
+      [$@.atDistance -> bestSquareInRange@{target:$target}] -> #
   end findDirectionToMove
 
-  templates<being> maybeMove <being>
-    $it -> $maybeMove
-    $it -> inRange ?<false> (findDirectionToMove($maybeMove) -> $templates)
-    $maybeMove
+  templates maybeMove@{target:}
+    $it -> @
+    $it -> inRange@{target:$target} -> (<0> $@maybeMove !) -> findDirectionToMove@{target:$target} -> #
 
     <'up'>
-      {dr:-1, dc:0} -> $templates
+      {dr:-1, dc:0} -> #
 
     <'left'>
-      {dr:0, dc:-1} -> $templates
+      {dr:0, dc:-1} -> #
 
     <'right'>
-      {dr:0, dc:1} -> $templates
+      {dr:0, dc:1} -> #
 
     <'down'>
-      {dr:1, dc:0} -> $templates
+      {dr:1, dc:0} -> #
 
-    <{dr:,dc:}>
-      {occupant:void} -> $grid($combattant.row, $combattant.col)
-      {occupant: $combattant.type} -> $grid($combattant.row + $it.dr, $combattant.col + $it.dc)
-      $grid($combattant.row + $it.dr, $combattant.col + $it.dc) -> $maybeMove
+    <{dr:<>,dc:<>}>
+      def move: $it
+      {contains:'.'} -> ...@Battleground($@.row; $@.col)
+      {contains: $@.type} -> ...@Battleground($@.row + $move.dr; $@.col + $move.dc)
+      $@Battleground($@.row + $move.dr; $@.col + $move.dc) !
   end maybeMove
 end Battleground
 
-templates copy
-  <[*]>
-    [ $it... -> $templates ]
+processor Battle@{setCombatValues:, isFightDecided:}
+  { battleground: $it -> Battleground,
+    beings: [ $it -> [i,j](<'G'|'E'> { type: $it, row: $i, col: $j } !)
+      -> flatten -> [i]({$it..., index: $i} !) ... -> setCombatValues] } -> @
 
-  <{}>
-    { $it... -> $templates }
+  templates liveBeingAtPosition
+    def col:$it.col
+    def row: $it.row
+    $@Battle.beings... -> (<{col:<$col>, row:<$row>, hitPoints: <1..>}> $it !) !
+  end liveBeingAtPosition
 
-  <*:<*>>
-    $it.key: ($it.value -> $templates)
-
-  <*>
-    $it
-end copy
-
-processor Battle
-  mut battleground <Battleground>
-  mut beings [<being>]
-  templates setCombatValues
-  templates isFightDecided
-
-  sink<position> strike(attack <number>)
-    $let pos = $it
-    $let index = $beings -> [i](<$pos> $i)
-    ($beings($index).hitPoints - $attack) -> $beings($index)
+  // should be sink
+  templates strike@{damage:}
+    def pos: $it
+    def index: $it.index
+    ($@Battle.beings($index).hitPoints - $damage) -> @Battle.beings($index).hitPoints
+    $@Battle.beings($index).hitPoints -> (<..0> $pos!) -> $@Battle.battleground::remove -> void
   end strike
 
-  sink takeTurn
-    $beings($it) -> battleground.maybeMove -> $beings($it)
-    $beings($it) -> battleground.neighbours -> filter(inRange($beings($it).type -> enemy))
-      -> sort(bestPosition) -> strike($beings($it).attackValue)
+  templates enemyType
+    <'G'> 'E' !
+    <'E'> 'G' !
+  end enemyType
+
+  templates adjacentEnemy@{me:}
+    def enemy: $me -> enemyType
+    $it -> $@Battle.battleground::neighbours
+      -> (<{contains:<$enemy>}> $it !) !
+  end adjacentEnemy
+
+  // should be sink
+  templates takeTurn
+    def who: $it.index
+    def enemy: $it.type -> enemyType
+    $@Battle.beings($who) -> #
+
+    <{hitPoints:<1..>}>
+    templates lowPoints
+      <?($it(1).hitPoints <$it(2).hitPoints>)> 0 !
+      <?($it(1).hitPoints <..$it(2).hitPoints>)> -1 !
+      <> 1 !
+    end lowPoints
+    $it -> $@Battle.battleground::maybeMove@{target:$enemy}
+      -> { row: $it.row, col: $it.col} -> ...@Battle.beings($who)
+    [ $@Battle.beings($who) -> adjacentEnemy@{me: $@Battle.beings($who).type} -> liveBeingAtPosition
+    ] -> (<[](1..)> $it!) -> lowest@{comp:lowPoints} -> first@{comp: bestPosition} -> strike@{damage: $@Battle.beings($who).attackValue}
+      -> void
   end takeTurn
 
-  source run
-    $beings -> [i]($beings(i) -> setCombatValues -> $beings(i))
-    {round: -1, stillFighting: 0} -> $run
-    $run -> $templates
+  // should be source
+  templates run
+    {round: -1, isDone: 0} -> @
+    $@ -> #
 
-    <{stillFighting: <0>}>
-      {round: $run.round + 1} -> $run
-      1..$beings.* -> (<?($beings($it) <{hitPoints: <1..>}>)> $it)
-        -> sort(<> $beings([$it]) -> bestPosition) -> takeTurn
-      { stillFighting: ($beings -> isFightDecided)} -> $run
-      $run -> $templates
+    <{isDone: <0>}>
+      $@.round + 1 -> @.round
+      $@Battle.beings -> sort@{comp: bestPosition}...
+        -> (<{hitPoints: <1..>}> $it !)
+        -> takeTurn -> void
+      $@Battle.beings -> isFightDecided -> @.isDone
+      $@ -> #
 
     <>
-      [ $beings... -> (<{hitPoints: <1..>}> $it) ] -> fold(0, <> $it.result + $it.item.hitPoints) -> (<> $it * $run.round * $run.stillFighting)
+      [ $@Battle.beings... -> (<{hitPoints: <1..>}> $it.hitPoints !) ] -> sum ->  $@.isDone * $@.round * $it !
   end run
 end Battle
 
 // part 1
 
   templates basicCombatValues
-    {attackValue: 3, hitPoints: 200} -> $it
-    $it
+    {$it..., attackValue: 3, hitPoints: 200} !
   end basicCombatValues
 
   templates oneRaceStanding
-    {elfAlive: false, gnomeAlive: false} -> $oneRaceStanding
-    $it... -> $templates
-    $oneRaceStanding -> (<{gnomeAlive: <true>, elfAlive: <true>}> 0 <> 1)
+    {elfAlive: 0, goblinAlive: 0} -> @
+    $it... -> #
+    $@ -> (<{goblinAlive: <1>, elfAlive: <1>}> 0! <> 1!) !
 
-    <{type: 'gnome', hitPoints: <1..>}>
-      {gnomeAlive: true} -> $oneRaceStanding
+    <{type: <'G'>, hitPoints: <1..>}>
+      {goblinAlive: 1} -> ...@
 
-    <{type: 'elf', hitPoints: <1..>}>
-      {elfAlive: true} -> $oneRaceStanding
+    <{type: <'E'>, hitPoints: <1..>}>
+      {elfAlive: 1} -> ...@
   end oneRaceStanding
 
-let data = stdin -> cave
-// How do we do new?
-let battle = <Battle>.new(<Battleground.new($data.grid), $data.beings, basicCombatValues, oneRaceStanding)
-battle.run -> stdout
+def battle: $input -> Battle@{setCombatValues:basicCombatValues, isFightDecided:oneRaceStanding}
+'$battle::run;
+'-> stdout
 
 // part 2
 templates victoryOrDeath
-    {elfDied: false, gnomeAlive: false} -> $victoryOrDeath
-    $it... -> $templates
-    $victoryOrDeath -> (<{elfDied: <true>}> -1 <{gnomeAlive: <true>}> 0 <> 1)
+    {elfDied: 0, goblinAlive: 0} -> @
+    $it... -> #
+    $@ -> (<{elfDied: <1>}> -1 ! <{goblinAlive: <1>}> 0 ! <> 1 !) !
 
-    <{type: 'gnome', hitPoints: <1..>}>
-      {gnomeAlive: true} -> $stillFighting
+    <{type: <'G'>, hitPoints: <1..>}>
+      {goblinAlive: 1} -> ...@
 
-    <{type: 'elf', hitPoints: <..0>}>
-      {elfDied: true} -> $victoryOrDeath
+    <{type: <'E'>, hitPoints: <..0>}>
+      {elfDied: 1} -> ...@
 end victoryOrDeath
 
-  templates tweakedCombatValues(elfAttack <number>)
-    <{type: <'gnome'>}>
-      {attackValue: 3, hitPoints: 200} -> $it
-      $it
+  templates tweakedCombatValues@{elfAttack:}
+    <{type: <'G'>}>
+      {$it..., attackValue: 3, hitPoints: 200} !
 
-    <{type: <'elf'>}>
-      {attackValue: $elfAttack, hitPoints: 200} -> $it
-      $it
+    <{type: <'E'>}>
+      {$it..., attackValue: $elfAttack, hitPoints: 200} !
   end tweakedCombatValues
 
-source part2
-  { elfAttack: 3, result: -1 } -> $part2
-  $part2 -> $templates
+// should be source
+templates part2
+  { elfAttack: 3, result: -1 } -> @
+  $@ -> #
 
-  <{result: <..!0>}>
-    { elfAttack: $part2.elfAttack + 1 } -> $part2
-    $let battle = <Battle>.new(<Battleground.new($data.grid), $data.beings, tweakedCombatValues($part2.elfAttack), victoryOrDeath)
-    { result: $battle.run} -> $part2
-    $part2 -> $templates
+  <{result: <..~0>}>
+    { elfAttack: $@.elfAttack + 1 } -> ...@
+    def battle: $input -> Battle@{setCombatValues:tweakedCombatValues@{elfAttack: $@.elfAttack}, isFightDecided:victoryOrDeath}
+    { result: $battle::run} -> ...@
+    $@ -> #
 
   <{result: <0..>}>
-    $part2.result -> stdout
+    $@ -> stdout
 end part2
 
-part2 -> stdout
+0 -> part2 -> stdout
+// Almost correct, we get one too few rounds (presumably when the last elf in a round kills the final goblin)
