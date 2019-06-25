@@ -167,6 +167,7 @@ end Battleground
 
 processor Battle@{setCombatValues:, isFightDecided:}
   { battleground: $it -> Battleground,
+    lastBeingStruck: 0, // if last being struck, another round was completed
     beings: [ $it -> [i,j](<'G'|'E'> { type: $it, row: $i, col: $j } !)
       -> flatten -> [i]({$it..., index: $i} !) ... -> setCombatValues] } -> @
 
@@ -178,6 +179,7 @@ processor Battle@{setCombatValues:, isFightDecided:}
 
   // should be sink
   templates strike@{damage:}
+    1 -> @Battle.lastBeingStruck
     def pos: $it
     def index: $it.index
     ($@Battle.beings($index).hitPoints - $damage) -> @Battle.beings($index).hitPoints
@@ -202,6 +204,7 @@ processor Battle@{setCombatValues:, isFightDecided:}
     $@Battle.beings($who) -> #
 
     <{hitPoints:<1..>}>
+    0 -> @Battle.lastBeingStruck
     templates lowPoints
       <?($it(1).hitPoints <$it(2).hitPoints>)> 0 !
       <?($it(1).hitPoints <..$it(2).hitPoints>)> -1 !
@@ -228,7 +231,7 @@ processor Battle@{setCombatValues:, isFightDecided:}
       $@ -> #
 
     <>
-      [ $@Battle.beings... -> (<{hitPoints: <1..>}> $it.hitPoints !) ] -> sum ->  $@.isDone * $@.round * $it !
+      [ $@Battle.beings... -> (<{hitPoints: <1..>}> $it.hitPoints !) ] -> sum ->  $@.isDone * ($@.round + $@Battle.lastBeingStruck) * $it !
   end run
 end Battle
 
@@ -291,4 +294,3 @@ templates part2
 end part2
 
 0 -> part2 -> stdout
-// Almost correct, we get one too few rounds (presumably when the last elf in a round kills the final goblin)
