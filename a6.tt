@@ -1,5 +1,5 @@
 composer coord
-  { x: <INT> (<', '>) y: <INT> }
+  { x: <INT>, (<', '>) y: <INT> }
 end coord
 
 def coordinates: [ stdin -> coord ] -> [i]({ $it..., id: $i } !)
@@ -15,11 +15,11 @@ templates max
 end max
 
 templates boundingbox
-  { left: $it(1).x, top: $it(1).y, bottom: $it(1).y, right: $it(1).x } -> @
-  $it(2..-1)... -> ({ left: [$it.x, $@boundingbox.left] -> min,
+  @: { left: $it(1).x, top: $it(1).y, bottom: $it(1).y, right: $it(1).x }
+  $it(2..-1)... -> (@boundingbox: { left: [$it.x, $@boundingbox.left] -> min,
                     top: [$it.y, $@boundingbox.top] -> min,
                     bottom: [$it.y, $@boundingbox.bottom] -> max,
-                    right: [$it.x, $@boundingbox.right] -> max } -> @boundingbox) -> void
+                    right: [$it.x, $@boundingbox.right] -> max }) -> void
   $@ !
 end boundingbox
 
@@ -31,7 +31,7 @@ templates abs
 end abs
 
 templates quicksort@{comparator:}
-  [] -> @
+  @: []
   $it -> #
   <[](2..)>
     def pivot: $it(1)
@@ -39,7 +39,7 @@ templates quicksort@{comparator:}
       <?([$it, $pivot] -> $comparator <..0>)>
         $it !
       <>
-        $it -> ...@quicksort
+        ..|@quicksort: $it
      )] -> quicksort@{comparator:$comparator}..., $pivot, $@ -> quicksort@{comparator:$comparator}... ] !
    <>
      $it !
@@ -54,8 +54,8 @@ templates byDist
 end byDist
 
 templates sum
-  0 -> @
-  $it... -> ($@sum + $it -> @sum) -> void
+  @: 0
+  $it... -> (@sum: $@sum + $it) -> void
   $@ !
 end sum
 
@@ -78,11 +78,11 @@ templates natural
 end natural
 
 templates unique
-  $it(1) -> @
+  @: $it(1)
   [ $it(2..-1)... -> #, $@ ] !
   <~$@>
     $@ !
-    $it -> @
+    @: $it
 end unique
 
 def infinites: [ $field(1;1..-1)..., $field(1..-1;1)..., $field(-1;1..-1)..., $field(1..-1;-1)...]
@@ -90,11 +90,11 @@ def infinites: [ $field(1;1..-1)..., $field(1..-1;1)..., $field(-1;1..-1)..., $f
 
 templates in@{values:}
   def what: $it
-  0 -> @
+  @: 0
   $values... -> #
   $@ !
   <$what>
-    1 -> @
+    @: 1
 end in
 
 templates flatten
@@ -105,17 +105,14 @@ templates flatten
 end flatten
 
 templates reduce@{operator:}
-  $it(1) -> @
-  $it(2..-1)... -> ([$@reduce, $it] -> $operator -> @reduce) -> void
+  @: $it(1)
+  $it(2..-1)... -> (@reduce: [$@reduce, $it] -> $operator) -> void
   $@ !
 end reduce
 
 templates count@{low:,high:}
-  [ $low..$high -> 0 ] -> @
-  $it... -> (def i: $it
-    [ $@count(1..$i-$low)...,
-        $@count($i-$low+1) -> $it + 1,
-        $@count($i-$low+2..-1)... ] -> @count) -> void
+  @: [ $low..$high -> 0 ]
+  $it... -> (@count($it-$low+1): $@count($it-$low+1) + 1) -> void
   $@ !
 end count
 

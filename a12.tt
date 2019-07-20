@@ -7,28 +7,28 @@ composer plants
 end plants
 
 templates encodeRule
-  0 -> @
+  @: 0
   $it... -> #
   $@ !
 
    <'#'>
-     ($@ * 2) + 1 -> @
+     @: ($@ * 2) + 1
 
    <'.'>
-     $@ * 2 -> @
+     @: $@ * 2
 end encodeRule
 
 templates reduce@{f:}
-  $it(1) -> @
+  @: $it(1)
   $it(2..-1)... -> #
   $@!
 
   <>
-    [ $@, $it] -> $f -> @
+    @: [ $@, $it] -> $f
 end reduce
 
 processor Plantation
-  $it -> @
+  @: $it
 
   templates debug
     $@Plantation.state !
@@ -57,7 +57,7 @@ processor Plantation
       $it -> checkAndShift -> #
 
     <>
-      {state: $it.newState} -> ...@Plantation
+      ..|@Plantation: {state: $it.newState}
   end evolve
 
   templates potSum // should be source
@@ -70,12 +70,11 @@ processor Plantation
 end Plantation
 
 templates makeIndexed
-  [1..$it::length -> '.'] -> @
+  @: [1..$it::length -> '.']
   $it... -> #
   $@!
   <{rule: <1..>}>
-    def rule: $it.rule
-    $it.result -> @($rule)
+    @($it.rule): $it.result
 end makeIndexed
 
 def startState: '$(stdin -> ($it! ' '!))' -> plants -> { state: [$it.state...] -> [i](<'#'> $i - 1 !),

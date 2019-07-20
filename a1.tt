@@ -5,8 +5,8 @@ end numbers
 def freqdiffs: [ stdin -> numbers ]
 
 templates sum
-  0 -> @
-  $it... -> ($it + $@sum -> @sum) !
+  @: 0
+  $it... -> (@sum: $it + $@sum) !
   $@ !
 end sum
 
@@ -14,7 +14,7 @@ $freqdiffs -> sum -> stdout
 
 processor Set
   templates find
-    $it -> @
+    @: $it
     { start: 1, end: $@Set::length } ->  #
     <?($it.end <..~$it.start>)>
       -$it.start !
@@ -29,18 +29,18 @@ processor Set
     $it -> find -> #
     <..0>
       def pos: -$it
-      [ $@Set(1..($pos-1))..., $item, $@Set($pos..-1)... ] -> @Set
+      @Set: [ $@Set(1..($pos-1))..., $item, $@Set($pos..-1)... ]
       1 !
     <>
       0 !
   end add
-  [] -> @
+  @: []
   $it... -> add -> void
 end Set
 
 templates findrepeat
   def seen: [0] -> Set
-  0 -> @
+  @: 0
   def adds: $it
   [] -> #
   <[](0)>
@@ -49,7 +49,7 @@ templates findrepeat
     $it(1) !
 
   <>
-    $it + $@ -> @
+    @: $it + $@
     $@ -> $seen::add -> (<0> $@findrepeat !) !
 
 end findrepeat

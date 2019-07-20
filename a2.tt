@@ -6,9 +6,9 @@ def tags: [ stdin -> tag ]
 
 templates twosAndThrees
   templates countOne
-    1 -> @
+    @: 1
     def one: $it(1)
-    $it(2..-1) -> [i](<$one> 1 + $@countOne -> @countOne <> $it !) ->
+    $it(2..-1) -> [i](<$one> @countOne: 1 + $@countOne  <> $it !) ->
       { rest: $it } !
     $@ -> (<2> { two: 1 }! <3> { three: 1 }!) !
   end countOne
@@ -16,11 +16,11 @@ templates twosAndThrees
 
   <'.*'>
     def chars: [ $it... ]
-    { two: 0, three: 0, rest: $chars } -> @
+    @: { two: 0, three: 0, rest: $chars }
     $@ -> #
 
   <{rest:<[](2..)>}>
-    $it.rest -> countOne -> ...@
+    ..|@: $it.rest -> countOne
     $@ -> #
 
   <>
@@ -28,12 +28,12 @@ templates twosAndThrees
 end twosAndThrees
 
 templates sumTwosAndThrees
-  $it(1) -> @
+  @: $it(1)
   $it(2..-1)... -> #
   $@ !
 
   <{}>
-    { two: $it.two + $@.two, three: $it.three + $@.three } -> @
+    @: { two: $it.two + $@.two, three: $it.three + $@.three }
 end sumTwosAndThrees
 
 // solution to part 1, phew!!!
@@ -47,10 +47,10 @@ $tags -> twosAndThrees -> sumTwosAndThrees -> ($it.two * $it.three) -> stdout
 templates onediff
   [ $it -> # ] !
   <[](2..)>
-    [ $it(1)... ] -> @
+    @: [ $it(1)... ]
     templates diffs
-      0 -> @
-      [ $it... ] -> [i](<~$@onediff($i)> 1 + $@diffs -> @diffs) -> void
+      @: 0
+      [ $it... ] -> [i](<~$@onediff($i)> @diffs: 1 + $@diffs) -> void
       $it -> (<?($@diffs<1>)> '$($@onediff...)' ! $it !) !
     end diffs
     $it(2..-1)... -> diffs !
@@ -58,7 +58,7 @@ templates onediff
 end onediff
 
 templates collate
-  [ $it(1)... ] -> @
+  @: [ $it(1)... ]
   '$([ $it(2)... ] -> [i](<$@collate($i)> $it !)...)' !
 end collate
 

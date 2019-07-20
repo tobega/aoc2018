@@ -5,12 +5,12 @@ composer polymerReaction
 end polymerReaction
 
 templates reactAll
-  0 -> @
+  @: 0
   $it -> #
   <?($it::length <$@>)>
     $@ !
   <>
-  $it::length -> @
+  @: $it::length
   '$($it...)' -> polymerReaction -> #
 end reactAll
 
@@ -25,11 +25,11 @@ $polymer -> reactAll -> stdout
 // part 2
 templates in@{values:}
   def what: $it
-  0 -> @
+  @: 0
   $values... -> #
   $@ !
   <$what>
-    1 -> @
+    @: 1
 end in
 
 def allUnits: [ 'aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ'... ]
@@ -39,11 +39,11 @@ templates findShortest
   templates removeUnit@{unit:}
     [ $polymer... -> (<?($it -> in@{values:$unit} <0>)> $it !) ] !
   end removeUnit
-  $polymer::length -> @
+  @: $polymer::length
   $it... -> removeUnit@{unit:$it} -> reactAll -> #
   $@ !
   <..~$@>
-    $it -> @
+    @: $it
 end findShortest
 
 $pairs -> findShortest -> stdout

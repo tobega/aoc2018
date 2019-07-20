@@ -3,16 +3,16 @@ def test1: 2018
 def test2: 51589
 
 processor Recipes
-  { recipes: [3,7], elf: 1, alf: 2 } -> @
+  @: { recipes: [3,7], elf: 1, alf: 2 }
 
   templates concoct // should be source
     def brew: $@Recipes.recipes($@Recipes.elf) + $@Recipes.recipes($@Recipes.alf)
-    $brew -> (<..9> $brew -> ...@Recipes.recipes
+    $brew -> (<..9> ..|@Recipes.recipes: $brew
       <>
-      ($brew / 10) -> ...@Recipes.recipes
-      ($brew mod 10) -> ...@Recipes.recipes) -> void
-    {elf: ($@Recipes.elf + $@Recipes.recipes($@Recipes.elf)) mod $@Recipes.recipes::length + 1,
-      alf: ($@Recipes.alf + $@Recipes.recipes($@Recipes.alf)) mod $@Recipes.recipes::length + 1 } -> ...@Recipes
+      ..|@Recipes.recipes: ($brew / 10)
+      ..|@Recipes.recipes: ($brew mod 10)) -> void
+    ..|@Recipes: {elf: ($@Recipes.elf + $@Recipes.recipes($@Recipes.elf)) mod $@Recipes.recipes::length + 1,
+      alf: ($@Recipes.alf + $@Recipes.recipes($@Recipes.alf)) mod $@Recipes.recipes::length + 1 }
   end concoct
 
   templates extract10After
@@ -32,8 +32,8 @@ processor Recipes
     def sequence: ['$it;'... -> parseInt ]
     templates matches
       def prefix: $it
-      1 -> @
-      $sequence -> [i](<~$@Recipes.recipes($prefix+$i)> 0 -> @matches) -> void
+      @: 1
+      $sequence -> [i](<~$@Recipes.recipes($prefix+$i)> @matches: 0) -> void
       $@ !
     end matches
     0 -> #
@@ -48,6 +48,9 @@ end Recipes
 // part 1
 def scoreboard: 0 -> Recipes
 $test1 -> $scoreboard::extract10After -> stdout
+
+'
+' -> stdout
 
 //part 2
 $test2 -> $scoreboard::findSequence -> stdout

@@ -1,21 +1,21 @@
 composer step
-  { dep: (<'Step '>) <'.'> (<' must be finished before step '>) step: <'.'> (<' can begin.'>) }
+  { dep: (<'Step '>) <'.'>, (<' must be finished before step '>) step: <'.'> (<' can begin.'>) }
 end step
 
 def deps: [ stdin -> step ]
 
 templates in@{values:}
   def what: $it
-  0 -> @
+  @: 0
   $values... -> #
   $@ !
   <$what>
-    1 -> @
+    @: 1
 end in
 
 templates reduce@{operator:}
-  $it(1) -> @
-  $it(2..-1)... -> ([$@reduce, $it] -> $operator -> @reduce) -> void
+  @: $it(1)
+  $it(2..-1)... -> (@reduce: [$@reduce, $it] -> $operator) -> void
   $@ !
 end reduce
 
@@ -58,7 +58,7 @@ templates minByTime
 end minByTime
 
 templates multi@{workers:, delay:}
- 0 -> @
+ @: 0
  def waiting: [ $it... -> $it.step ]
  { unresolved: $it,
    ready: [ $it... -> $it.dep -> (<?($it -> in@{values: $waiting} <0>)> $it !) ],
@@ -74,7 +74,7 @@ templates multi@{workers:, delay:}
 
  <{workers: <[](1..)>}>
    def mintime: $it.workers -> reduce@{operator:minByTime} -> $it.time
-   $mintime + $@ -> @
+   @: $mintime + $@
    def current: $it
    def workers: [ $it.workers... ->  { task: $it.task, time: $it.time - $mintime } ]
    def done: [$workers...  -> (<?($it.time <0>)> $it !) -> $it.task]

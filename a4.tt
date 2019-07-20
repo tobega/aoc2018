@@ -7,7 +7,7 @@ composer record
 end record
 
 templates quicksort@{comparator:}
-  [] -> @
+  @: []
   $it -> #
   <[](2..)>
     def pivot: $it(1)
@@ -15,7 +15,7 @@ templates quicksort@{comparator:}
       <?([$it, $pivot] -> $comparator <..0>)>
         $it !
       <>
-        $it -> ...@quicksort
+        ..|@quicksort: $it
      )] -> quicksort@{comparator:$comparator}..., $pivot, $@ -> quicksort@{comparator:$comparator}... ] !
    <>
      $it !
@@ -61,32 +61,30 @@ end guardComparator
 
 //templates max@{comparator:<templates<[](2)>:<-1..1>>}
 templates max@{comparator:}
-  $it(1) -> @
+  @: $it(1)
   $it(2..-1)... -> #
   $@ !
   <?([$it, $@] -> $comparator <1>)>
-    $it -> @
+    @: $it
 end max
 
 def highestGuardNo: $shifts -> max@{comparator:guardComparator} -> $it.guard
 
 templates collateGuards
-  [ 1..$highestGuardNo -> { guard: $it, naps: []} ] -> @
+  @: [ 1..$highestGuardNo -> { guard: $it, naps: []} ]
   $it... -> (def guard: $it.guard
-    [ $@collateGuards(1..$guard-1)..., { guard: $guard, naps: [$@collateGuards($guard).naps..., $it.naps...] },
-    $@collateGuards($guard+1..-1)... ]  -> @collateGuards) -> void
+    ..|@collateGuards($guard).naps: $it.naps...) -> void
   [ $@... -> (<{naps:<[](1..)>}> $it !) ] !
 end collateGuards
 
 def guardNaps: $shifts -> collateGuards
 
 templates makeStats
-  { guard: $it.guard, totalSleep: 0, minutes: [ 0..59 -> 0 ] } -> @
+  @: { guard: $it.guard, totalSleep: 0, minutes: [ 0..59 -> 0 ] }
   $it.naps... -> (def nap: $it
-    { totalSleep: $nap.wake - $nap.sleep + $@makeStats.totalSleep,
-      minutes: [ $@makeStats.minutes(1..$nap.sleep)...,
-        $@makeStats.minutes($nap.sleep+1..$nap.wake)... -> $it + 1,
-        $@makeStats.minutes($nap.wake+1..-1)... ] } -> ...@makeStats) -> void
+    @makeStats.totalSleep: $nap.wake - $nap.sleep + $@makeStats.totalSleep
+    $nap.sleep+1..$nap.wake -> (@makeStats.minutes($it): $@makeStats.minutes($it) + 1) -> void
+  ) -> void
   $@ !
 end makeStats
 

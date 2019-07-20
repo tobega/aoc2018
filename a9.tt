@@ -1,37 +1,37 @@
 templates max
-  $it(1) -> @
+  @: $it(1)
   $it(2..-1)... -> #
   $@ !
   <$@~..>
-    $it -> @
+    @: $it
 end max
 
 processor Game
-  {head: 1, tail: 1 ring: [1..2*$it -> 0]} -> @
+  @: {head: 1, tail: 1 ring: [1..2*$it -> 0]}
   templates play
     <?($it mod 23 <0>)>
-      $@Game.ring($@Game.head-5..$@Game.head)... -> @Game.ring($@Game.tail-6..$@Game.tail-1)
+      @Game.ring($@Game.tail-6..$@Game.tail-1): $@Game.ring($@Game.head-5..$@Game.head)...
       def newHead: $@Game.head - 7
       def score: $it + $@Game.ring($newHead)
-      $@Game.ring($newHead + 1) -> @Game.ring($newHead)
-      {head: $newHead, tail: $@Game.tail-6} -> ...@Game
+      @Game.ring($newHead): $@Game.ring($newHead + 1)
+      ..|@Game: {head: $newHead, tail: $@Game.tail-6}
       $score !
     <>
-      $@Game.ring($@Game.tail) -> @Game.ring($@Game.head+1)
-      $it -> @Game.ring($@Game.head+2)
-      {head: $@Game.head + 2, tail: $@Game.tail + 1} -> ...@Game
+      @Game.ring($@Game.head+1): $@Game.ring($@Game.tail)
+      @Game.ring($@Game.head+2): $it
+      ..|@Game: {head: $@Game.head + 2, tail: $@Game.tail + 1}
       0 !
   end play
 end Game
 
 templates game@{players:}
   def ring: $it -> Game
-  [ 1..$players -> 0 ] -> @
+  @: [ 1..$players -> 0 ]
   1..$it -> #
   $@ -> max !
   <>
     def player: (($it - 1) mod $players) + 1
-    $it -> $ring::play -> $it + $@($player) -> @($player)
+    @($player): $it -> $ring::play -> $it + $@($player)
 end game
 
-7114400 -> game@{players: 424} -> stdout
+1618 -> game@{players: 10} -> stdout

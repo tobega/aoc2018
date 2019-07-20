@@ -1,7 +1,7 @@
 composer claim
- { (<'#'>) id:<INT> (<' @ '>)
- left:<INT> (<','>) top:<INT> (<': '>)
- width:<INT> (<'x'>) height: <INT> (<'\n'>?) }
+ { (<'#'>) id:<INT>, (<' @ '>)
+ left:<INT>, (<','>) top:<INT>, (<': '>)
+ width:<INT>, (<'x'>) height: <INT> (<'\n'>?) }
 end claim
 
 def claims: [ stdin -> claim ]
@@ -17,22 +17,22 @@ templates max
 end max
 
 templates boundingbox
-  { left: $it(1).left, top: $it(1).top, bottom: $it(1).top + $it(1).height, right: $it(1).left + $it(1).width } -> @
+  @: { left: $it(1).left, top: $it(1).top, bottom: $it(1).top + $it(1).height, right: $it(1).left + $it(1).width }
   $it(2..-1)... -> #
   $@ !
 
   <>
-    { left: [$it.left, $@.left] -> min,
+    @: { left: [$it.left, $@.left] -> min,
       top: [$it.top, $@.top] -> min,
       bottom: [$it.top + $it.height, $@.bottom] -> max,
-      right: [$it.left + $it.width, $@.right] -> max } -> @
+      right: [$it.left + $it.width, $@.right] -> max }
 end boundingbox
 
 processor fabric
-  { claims: $it, bounds: $it -> boundingbox } -> @
+  @: { claims: $it, bounds: $it -> boundingbox }
 
   templates quicksort
-    [] -> @
+    @: []
     $it -> #
     <[](2..)>
       def pivot: $it(1)
@@ -40,7 +40,7 @@ processor fabric
         <?($it.y<..$pivot.y>)>
           $it !
         <>
-          $it -> ...@quicksort
+          ..|@quicksort: $it
        )] -> quicksort..., $pivot, $@ -> quicksort... ] !
      <>
        $it !
@@ -54,7 +54,7 @@ processor fabric
         <{ left: <..$x>,  width: <$w~..> }> {y: $it.top, d: 1} ! {y: $it.top + $it.height, d: -1} !
       ) ]
       -> quicksort
-    { y: $profile(1).y, level: $profile(1).d, count: 0 } -> @
+    @: { y: $profile(1).y, level: $profile(1).d, count: 0 }
     $profile(2..-1)... -> #
     $@.count !
 
@@ -62,12 +62,12 @@ processor fabric
       def level: $@.level
       def span: $it.y - $@.y
       def inc: $level -> (<2..> $span ! <> 0 !)
-      { y: $it.y, level: $level + $it.d, count: $@.count + $inc } -> @
+      @: { y: $it.y, level: $level + $it.d, count: $@.count + $inc }
   end verticalScan
 
   templates sum
-    0 -> @
-    $it... -> ($it + $@sum -> @sum) -> void
+    @: 0
+    $it... -> (@sum: $it + $@sum) -> void
     $@ !
   end sum
 
@@ -78,7 +78,7 @@ processor fabric
   templates getNonOverlapping
     templates nonOverlapping
       def candidate: $@fabric.claims($it)
-      $it -> @
+      @: $it
       1..$@fabric.claims::length -> #
       $@ -> (<1..> $it ! ) !
 
@@ -94,7 +94,7 @@ processor fabric
         void
 
       <>
-        0 -> @
+        @: 0
     end nonOverlapping
     [ 1..$@fabric.claims::length -> nonOverlapping ] !
   end getNonOverlapping

@@ -1,5 +1,5 @@
 composer nanobot
-  { (<'pos=<'>) x: <INT> (<','>) y: <INT> (<','>) z: <INT> (<'>, r='>) range: <INT> }
+  { (<'pos=<'>) x: <INT>, (<','>) y: <INT>, (<','>) z: <INT>, (<'>, r='>) range: <INT> }
 end nanobot
 
 def bots: [ stdin -> nanobot ]
@@ -9,8 +9,8 @@ templates abs
 end abs
 
 templates reduce@{op:}
-  $it(1) -> @
-  $it(2..-1)... -> ([$@reduce, $it] -> op -> @reduce) -> void
+  @: $it(1)
+  $it(2..-1)... -> (@reduce: [$@reduce, $it] -> op) -> void
   $@ !
 end reduce
 
@@ -42,9 +42,9 @@ def biggest: $bots -> reduce@{op:biggestRange}
 // 8: - x - y - z <= r - a - b - c
 
 templates isFeasible
-  1 -> @
+  @: 1
   def bot: $it
-  1..4 -> (<?($bot.constraints($it) + $bot.constraints(-$it) <..~0>)> 0 -> @isFeasible) -> void
+  1..4 -> (<?($bot.constraints($it) + $bot.constraints(-$it) <..~0>)> @isFeasible: 0) -> void
   $@ !
 end isFeasible
 
@@ -77,26 +77,25 @@ end intersect
 
 templates part2
   def empty: { intersectingBots: 0, constraints: [1..8 -> 999999999]}
-  { largestIntersect: $empty,
+  @: { largestIntersect: $empty,
     feasibleChoices: $it, remainingFeasibleChoices: [[]], currentIntersects: [ $empty ]}
-    -> @
   $@ -> #
 
   <{feasibleChoices: <[](1..)>}
       ?($it.currentIntersects(-1).intersectingBots + $it.feasibleChoices::length
         <$it.largestIntersect.intersectingBots~..>)>
     def currentIntersect: [$it.currentIntersects(-1), $it.feasibleChoices(1)] -> intersect
-    $currentIntersect -> ...@.currentIntersects
+    ..|@.currentIntersects: $currentIntersect
     def largestIntersect: $it.largestIntersect -> (<{ intersectingBots: <..$currentIntersect.intersectingBots>}> $currentIntersect ! <> $it !)
-    $it.feasibleChoices(2..-1) -> ...@.remainingFeasibleChoices
-    { feasibleChoices: [ $it.feasibleChoices(2..-1)... -> [$it, $currentIntersect] -> intersect -> (<?($it -> isFeasible <1>)> $it !) ],
-      largestIntersect: $largestIntersect} -> ...@
+    ..|@.remainingFeasibleChoices: $it.feasibleChoices(2..-1)
+    ..|@: { feasibleChoices: [ $it.feasibleChoices(2..-1)... -> [$it, $currentIntersect] -> intersect -> (<?($it -> isFeasible <1>)> $it !) ],
+      largestIntersect: $largestIntersect}
     $@ -> #
 
   <{remainingFeasibleChoices: <[](1..)>}>
-    { currentIntersects: $it.currentIntersects(1..-2),
+    ..|@: { currentIntersects: $it.currentIntersects(1..-2),
       feasibleChoices: $it.remainingFeasibleChoices(-1),
-      remainingFeasibleChoices: $it.remainingFeasibleChoices(1..-2) } -> ...@
+      remainingFeasibleChoices: $it.remainingFeasibleChoices(1..-2) }
     $@ -> #
 
   <>
@@ -111,7 +110,7 @@ templates byBiggestRange
 end byBiggestRange
 
 templates sort@{comp:}
-  [] -> @
+  @: []
   $it -> #
   <[](2..)>
     def pivot: $it(1)
@@ -119,7 +118,7 @@ templates sort@{comp:}
       <?([$it, $pivot] -> $comp <..0>)>
         $it !
       <>
-        $it -> ...@sort
+        ..|@sort: $it
      )] -> sort@{comp:comp}..., $pivot, $@ -> sort@{comp:comp}... ] !
    <>
      $it !

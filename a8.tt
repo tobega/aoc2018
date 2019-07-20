@@ -9,8 +9,8 @@ def root: stdin -> nodes
 //part 1
 
 templates sum
-  0 -> @
-  $it... -> ($@sum + $it -> @sum) -> void
+  @: 0
+  $it... -> (@sum: $@sum + $it) -> void
   $@ !
 end sum
 
