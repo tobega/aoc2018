@@ -7,7 +7,7 @@ templates max
 end max
 
 processor Game
-  @: {head: 1, tail: 1 ring: [1..2*$it -> 0]}
+  @: {head: 1, tail: 1, ring: [1..2*$it -> 0]}
   templates play
     <?($it mod 23 <0>)>
       @Game.ring($@Game.tail-6..$@Game.tail-1): $@Game.ring($@Game.head-5..$@Game.head)...
