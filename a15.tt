@@ -1,4 +1,4 @@
-def input: [ stdin -> [ $it... ] ]
+def input: [ $IN::lines -> [ $it... ] ]
 
 templates flatten
   [ $it -> # ] !
@@ -253,7 +253,7 @@ end Battle
 
 def battle: $input -> Battle@{setCombatValues:basicCombatValues, isFightDecided:oneRaceStanding}
 '$battle::run;
-'-> stdout
+'-> !OUT::write
 
 // part 2
 templates victoryOrDeath
@@ -288,7 +288,7 @@ templates part2
     $@ -> #
 
   <{result: <0..>}>
-    $@ -> stdout
+    $@ -> !OUT::write
 end part2
 
-0 -> part2 -> stdout
+0 -> part2 -> !OUT::write

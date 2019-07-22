@@ -2,7 +2,7 @@ composer step
   { dep: (<'Step '>) <'.'>, (<' must be finished before step '>) step: <'.'> (<' can begin.'>) }
 end step
 
-def deps: [ stdin -> step ]
+def deps: [ $IN::lines -> step ]
 
 templates in@{values:}
   def what: $it
@@ -41,9 +41,9 @@ templates topological
    } -> #
 end topological
 
-$deps -> topological -> stdout
+$deps -> topological -> !OUT::write
 '
-' -> stdout
+' -> !OUT::write
 
 // part 2
 def tasks: ['ABCDEFGHIJKLMNOPQRSTUVWXYZ'...]
@@ -87,5 +87,5 @@ templates multi@{workers:, delay:}
    } -> #
 end multi
 
-$deps -> multi@{workers: 5, delay: 60} -> stdout
+$deps -> multi@{workers: 5, delay: 60} -> !OUT::write
 

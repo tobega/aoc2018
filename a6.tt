@@ -2,7 +2,7 @@ composer coord
   { x: <INT>, (<', '>) y: <INT> }
 end coord
 
-def coordinates: [ stdin -> coord ] -> [i]({ $it..., id: $i } !)
+def coordinates: [ $IN::lines -> coord ] -> [i]({ $it..., id: $i } !)
 
 templates min
   <?($it(1)<..$it(2)>)> $it(1) !
@@ -117,10 +117,10 @@ templates count@{low:,high:}
 end count
 
 [ $field -> flatten -> $it.closest -> (<1.. ?($it -> in@{values: $infinites} <0>)> $it !) ]
-  -> count@{low: 1, high: $coordinates::length} -> reduce@{operator: max} -> stdout
+  -> count@{low: 1, high: $coordinates::length} -> reduce@{operator: max} -> !OUT::write
 
 '
-' -> stdout
+' -> !OUT::write
 
 // part 2
-[ $field -> flatten -> $it.sum -> (<..~10000> $it !) ] -> $it::length -> stdout
+[ $field -> flatten -> $it.sum -> (<..~10000> $it !) ] -> $it::length -> !OUT::write

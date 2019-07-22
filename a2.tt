@@ -2,7 +2,7 @@ composer tag
   <'[a-z]+'>
 end tag
 
-def tags: [ stdin -> tag ]
+def tags: [ $IN::lines -> tag ]
 
 templates twosAndThrees
   templates countOne
@@ -38,10 +38,10 @@ end sumTwosAndThrees
 
 // solution to part 1, phew!!!
 
-$tags -> twosAndThrees -> sumTwosAndThrees -> ($it.two * $it.three) -> stdout
+$tags -> twosAndThrees -> sumTwosAndThrees -> ($it.two * $it.three) -> !OUT::write
 
 '
-' -> stdout
+' -> !OUT::write
 
 // part 2
 templates onediff
@@ -62,6 +62,6 @@ templates collate
   '$([ $it(2)... ] -> [i](<$@collate($i)> $it !)...)' !
 end collate
 
-$tags -> onediff -> collate -> stdout
+$tags -> onediff -> collate -> !OUT::write
     
     

@@ -2,7 +2,7 @@ composer numbers
 <INT>
 end numbers
 
-def freqdiffs: [ stdin -> numbers ]
+def freqdiffs: [ $IN::lines -> numbers ]
 
 templates sum
   @: 0
@@ -10,7 +10,7 @@ templates sum
   $@ !
 end sum
 
-$freqdiffs -> sum -> stdout
+$freqdiffs -> sum -> !OUT::write
 
 processor Set
   templates find
@@ -55,6 +55,6 @@ templates findrepeat
 end findrepeat
 
 '
-' -> stdout
+' -> !OUT::write
 
-$freqdiffs -> findrepeat -> stdout
+$freqdiffs -> findrepeat -> !OUT::write

@@ -4,7 +4,7 @@ composer nodes
   metadata: <INT> (<WS>?)
 end nodes
 
-def root: stdin -> nodes
+def root: $IN::lines -> nodes
 
 //part 1
 
@@ -25,10 +25,10 @@ templates getMetadata
     $it !
 end getMetadata
 
-$root -> getMetadata -> sum -> stdout
+$root -> getMetadata -> sum -> !OUT::write
 
 '
-' -> stdout
+' -> !OUT::write
 
 //part 2
 
@@ -41,5 +41,5 @@ templates nodeValue
     [ $it.children([$it.metadata... -> (<1..$max> $it!)])... -> # ] -> sum !
 end nodeValue
 
-$root -> nodeValue -> stdout
+$root -> nodeValue -> !OUT::write
 

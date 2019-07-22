@@ -77,9 +77,9 @@ templates makeIndexed
     @($it.rule): $it.result
 end makeIndexed
 
-def startState: '$(stdin -> ($it! ' '!))' -> plants -> { state: [$it.state...] -> [i](<'#'> $i - 1 !),
+def startState: '$($IN::lines -> ($it! ' '!))' -> plants -> { state: [$it.state...] -> [i](<'#'> $i - 1 !),
   rules: [ $it.rules... -> { rule: $it.pattern -> encodeRule, result: $it.result }] -> makeIndexed}
 
 def part1: $startState -> Plantation
 1..20 -> $part1::evolve -> void
-$part1::potSum -> stdout
+$part1::potSum -> !OUT::write

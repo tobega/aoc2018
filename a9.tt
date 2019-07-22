@@ -34,4 +34,4 @@ templates game@{players:}
     @($player): $it -> $ring::play -> $it + $@($player)
 end game
 
-1618 -> game@{players: 10} -> stdout
+1618 -> game@{players: 10} -> !OUT::write

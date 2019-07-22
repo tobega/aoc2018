@@ -4,7 +4,7 @@ composer claim
  width:<INT>, (<'x'>) height: <INT> (<'\n'>?) }
 end claim
 
-def claims: [ stdin -> claim ]
+def claims: [ $IN::lines -> claim ]
 
 templates min
   <?($it(1)<..$it(2)>)> $it(1) !
@@ -104,8 +104,8 @@ def cloth: $claims -> fabric
 
 //part 1
 '$cloth::countOverlapInches;
-'-> stdout
+'-> !OUT::write
 
 //part 2
 $cloth::getNonOverlapping -> '$it(1);
-'-> stdout
+'-> !OUT::write

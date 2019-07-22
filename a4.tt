@@ -48,7 +48,7 @@ templates byTime
   <> 1 !
 end byTime
 
-def shifts: [ stdin -> record ] -> quicksort@{comparator: byTime} -> shiftNaps
+def shifts: [ $IN::lines -> record ] -> quicksort@{comparator: byTime} -> shiftNaps
 
 // templates <[{guard:<number>}](2)>:<-1..1> guardComparator
 templates guardComparator
@@ -114,10 +114,10 @@ end sleepiestMinute
 $guardStats -> max@{comparator: byTotalSleep}
   -> (def minute: $it.minutes -> sleepiestMinute -> $it.minute
       $it.guard * $minute !)
-  -> stdout
+  -> !OUT::write
 
 '
-' -> stdout
+' -> !OUT::write
 
 // part 2
 
@@ -130,4 +130,4 @@ templates bySleepiestMinute
 end bySleepiestMinute
 
 [ $guardStats... -> { guard: $it.guard, sleepiestMinute: $it.minutes -> sleepiestMinute } ]
-  -> max@{comparator: bySleepiestMinute} -> $it.guard * $it.sleepiestMinute.minute -> stdout
+  -> max@{comparator: bySleepiestMinute} -> $it.guard * $it.sleepiestMinute.minute -> !OUT::write

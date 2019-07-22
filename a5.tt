@@ -14,13 +14,13 @@ templates reactAll
   '$($it...)' -> polymerReaction -> #
 end reactAll
 
-def polymer: [ stdin... ]
+def polymer: [ $IN::lines... ]
 
 // part 1
-$polymer -> reactAll -> stdout
+$polymer -> reactAll -> !OUT::write
 
 '
-' -> stdout
+' -> !OUT::write
 
 // part 2
 templates in@{values:}
@@ -46,4 +46,4 @@ templates findShortest
     @: $it
 end findShortest
 
-$pairs -> findShortest -> stdout
+$pairs -> findShortest -> !OUT::write

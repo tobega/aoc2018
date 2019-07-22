@@ -2,7 +2,7 @@ composer nanobot
   { (<'pos=<'>) x: <INT>, (<','>) y: <INT>, (<','>) z: <INT>, (<'>, r='>) range: <INT> }
 end nanobot
 
-def bots: [ stdin -> nanobot ]
+def bots: [ $IN::lines -> nanobot ]
 
 templates abs
   <0..> $it ! <> -$it !
@@ -25,10 +25,10 @@ end biggestRange
 
 def biggest: $bots -> reduce@{op:biggestRange}
 
-[ $bots... -> manhattanDistance@{from:$biggest} -> (<..$biggest.range> $it !) ] -> $it::length -> stdout
+[ $bots... -> manhattanDistance@{from:$biggest} -> (<..$biggest.range> $it !) ] -> $it::length -> !OUT::write
 
 '
-' -> stdout
+' -> !OUT::write
 
 // part2
 // Resolving the planes defining the octahedron gives a nice set of equations
@@ -126,4 +126,4 @@ end sort
 
 def cubes: [ $bots -> sort@{comp:byBiggestRange} ... -> octahedronAround ]
 
-$cubes -> part2 -> stdout
+$cubes -> part2 -> !OUT::write
