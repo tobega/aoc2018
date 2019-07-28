@@ -7,28 +7,25 @@ composer plants
 end plants
 
 templates encodeRule
-  @: 0
-  $it... -> #
+  @: 0;
+  $... -> #
   $@ !
 
    <'#'>
-     @: ($@ * 2) + 1
+     @: ($@ * 2) + 1;
 
    <'.'>
-     @: $@ * 2
+     @: $@ * 2;
 end encodeRule
 
 templates reduce@{f:}
-  @: $it(1)
-  $it(2..-1)... -> #
+  @: $(1);
+  $(2..-1)... -> @: [ $@, $] -> f;
   $@!
-
-  <>
-    @: [ $@, $it] -> $f
 end reduce
 
 processor Plantation
-  @: $it
+  @: $;
 
   templates debug
     $@Plantation.state !
@@ -37,32 +34,32 @@ processor Plantation
   templates evolve // should be sink (or really sink&source)
     templates checkAndShift
       <{locale: <0>}>
-        { $it..., pos: $it.pos + 1 } !
+        { $..., pos: $.pos + 1 } !
       <>
-        def prev: $it
+        def prev: $;
         { $prev..., newState: $@Plantation.rules($prev.locale) -> (<'#'> [$prev.newState..., $prev.pos] ! <> $prev.newState !),
               pos: $prev.pos + 1, locale: (($prev.locale * 2) mod 32) } !
     end checkAndShift
 
     { pos: $@Plantation.state(1) - 2, i: 1, locale: 0, newState: [] } -> #
 
-    <{i: <..$@Plantation.state::length>}?($it.pos <$@Plantation.state($it.i)-2>)>
-      def prev: $it
-      { $prev..., locale: $it.locale + 1, i: $it.i + 1 } -> #
+    <{i: <..$@Plantation.state::length>}?($.pos <$@Plantation.state($.i)-2>)>
+      def prev: $;
+      { $prev..., locale: $.locale + 1, i: $.i + 1 } -> #
 
     <{i: <..$@Plantation.state::length>}>
-      $it -> checkAndShift -> #
+      $ -> checkAndShift -> #
 
     <{locale: <0~..>}>
-      $it -> checkAndShift -> #
+      $ -> checkAndShift -> #
 
     <>
-      ..|@Plantation: {state: $it.newState}
+      ..|@Plantation: {state: $.newState};
   end evolve
 
   templates potSum // should be source
       templates sum
-        $it(1) + $it(2) !
+        $(1) + $(2) !
       end sum
     $@Plantation.state -> reduce@{f:sum} !
   end potSum
@@ -70,16 +67,16 @@ processor Plantation
 end Plantation
 
 templates makeIndexed
-  @: [1..$it::length -> '.']
-  $it... -> #
+  @: [1..$::length -> '.'];
+  $... -> #
   $@!
   <{rule: <1..>}>
-    @($it.rule): $it.result
+    @($.rule): $.result;
 end makeIndexed
 
-def startState: '$($IN::lines -> ($it! ' '!))' -> plants -> { state: [$it.state...] -> [i](<'#'> $i - 1 !),
-  rules: [ $it.rules... -> { rule: $it.pattern -> encodeRule, result: $it.result }] -> makeIndexed}
+def startState: '$IN::lines -> ($! ' '!);' -> plants -> { state: [$.state...] -> [i](<'#'> $i - 1 !),
+  rules: [ $.rules... -> { rule: $.pattern -> encodeRule, result: $.result }] -> makeIndexed};
 
-def part1: $startState -> Plantation
-1..20 -> $part1::evolve -> void
+def part1: $startState -> Plantation;
+1..20 -> $part1::evolve -> !VOID
 $part1::potSum -> !OUT::write

@@ -2,125 +2,125 @@ composer coord
   { x: <INT>, (<', '>) y: <INT> }
 end coord
 
-def coordinates: [ $IN::lines -> coord ] -> [i]({ $it..., id: $i } !)
+def coordinates: [ $IN::lines -> coord ] -> [i]({ $..., id: $i } !);
 
 templates min
-  <?($it(1)<..$it(2)>)> $it(1) !
-  <> $it(2) !
+  <?($(1)<..$(2)>)> $(1) !
+  <> $(2) !
 end min
 
 templates max
-  <?($it(1)<$it(2)..>)> $it(1) !
-  <> $it(2) !
+  <?($(1)<$(2)..>)> $(1) !
+  <> $(2) !
 end max
 
 templates boundingbox
-  @: { left: $it(1).x, top: $it(1).y, bottom: $it(1).y, right: $it(1).x }
-  $it(2..-1)... -> (@boundingbox: { left: [$it.x, $@boundingbox.left] -> min,
-                    top: [$it.y, $@boundingbox.top] -> min,
-                    bottom: [$it.y, $@boundingbox.bottom] -> max,
-                    right: [$it.x, $@boundingbox.right] -> max }) -> void
+  @: { left: $(1).x, top: $(1).y, bottom: $(1).y, right: $(1).x };
+  $(2..-1)... -> @boundingbox: { left: [$.x, $@boundingbox.left] -> min,
+                    top: [$.y, $@boundingbox.top] -> min,
+                    bottom: [$.y, $@boundingbox.bottom] -> max,
+                    right: [$.x, $@boundingbox.right] -> max };
   $@ !
 end boundingbox
 
-def bb: $coordinates -> boundingbox
+def bb: $coordinates -> boundingbox;
 
 templates abs
-  <0..> $it !
-  <> -$it !
+  <0..> $ !
+  <> -$ !
 end abs
 
 templates quicksort@{comparator:}
-  @: []
-  $it -> #
+  @: [];
+  $ -> #
   <[](2..)>
-    def pivot: $it(1)
-    [ [ $it(2..-1)... -> (
-      <?([$it, $pivot] -> $comparator <..0>)>
-        $it !
+    def pivot: $(1);
+    [ [ $(2..-1)... -> (
+      <?([$, $pivot] -> comparator <..0>)>
+        $ !
       <>
-        ..|@quicksort: $it
-     )] -> quicksort@{comparator:$comparator}..., $pivot, $@ -> quicksort@{comparator:$comparator}... ] !
+        ..|@quicksort: $;
+     )] -> quicksort@{comparator:comparator}..., $pivot, $@ -> quicksort@{comparator:comparator}... ] !
    <>
-     $it !
+     $ !
 end quicksort
 
 templates byDist
-  def second: $it(2).dist
-  $it(1).dist -> #
+  def second: $(2).dist;
+  $(1).dist -> #
   <$second> 0 !
   <..$second> -1 !
   <> 1 !
 end byDist
 
 templates sum
-  @: 0
-  $it... -> (@sum: $@sum + $it) -> void
+  @: 0;
+  $... -> @sum: $@sum + $;
   $@ !
 end sum
 
-def field: [$bb.left..$bb.right -> (def x: $it
-  [ $bb.top..$bb.bottom -> (def y: $it
-       [ $coordinates... -> { id: $it.id, dist: ($it.x - $x -> abs) + ($it.y - $y -> abs) } ]
+def field: [$bb.left..$bb.right -> (def x: $;
+  [ $bb.top..$bb.bottom -> (def y: $;
+       [ $coordinates... -> { id: $.id, dist: ($.x - $x -> abs) + ($.y - $y -> abs) } ]
        -> quicksort@{comparator: byDist}
-       -> { closest: $it -> (<?($it(1).dist <$it(2).dist>)> 0 ! <> $it(1).id !),
-            sum: [ $it... -> $it.dist ] -> sum } !
+       -> { closest: $ -> (<?($(1).dist <$(2).dist>)> 0 ! <> $(1).id !),
+            sum: [ $... -> $.dist ] -> sum } !
      )
-  ] !) ]
+  ] !) ];
 
 // part 1
 templates natural
-  def second: $it(2)
-  $it(1) -> #
+  def second: $(2);
+  $(1) -> #
   <$second> 0 !
   <..$second> -1 !
   <> 1 !
 end natural
 
 templates unique
-  @: $it(1)
-  [ $it(2..-1)... -> #, $@ ] !
+  @: $(1);
+  [ $(2..-1)... -> #, $@ ] !
   <~$@>
     $@ !
-    @: $it
+    @: $;
 end unique
 
 def infinites: [ $field(1;1..-1)..., $field(1..-1;1)..., $field(-1;1..-1)..., $field(1..-1;-1)...]
-  -> [ $it... -> $it.closest ] -> quicksort@{comparator: natural} -> unique
+  -> [ $... -> $.closest ] -> quicksort@{comparator: natural} -> unique;
 
 templates in@{values:}
-  def what: $it
-  @: 0
+  def what: $;
+  @: 0;
   $values... -> #
   $@ !
   <$what>
-    @: 1
+    @: 1;
 end in
 
 templates flatten
   <[]>
-    $it... -> #
+    $... -> #
   <>
-    $it!
+    $!
 end flatten
 
 templates reduce@{operator:}
-  @: $it(1)
-  $it(2..-1)... -> (@reduce: [$@reduce, $it] -> $operator) -> void
+  @: $(1);
+  $(2..-1)... -> @reduce: [$@reduce, $] -> operator;
   $@ !
 end reduce
 
 templates count@{low:,high:}
-  @: [ $low..$high -> 0 ]
-  $it... -> (@count($it-$low+1): $@count($it-$low+1) + 1) -> void
+  @: [ $low..$high -> 0 ];
+  $... -> @count($-$low+1): $@count($-$low+1) + 1;
   $@ !
 end count
 
-[ $field -> flatten -> $it.closest -> (<1.. ?($it -> in@{values: $infinites} <0>)> $it !) ]
+[ $field -> flatten -> $.closest -> (<1.. ?($ -> in@{values: $infinites} <0>)> $ !) ]
   -> count@{low: 1, high: $coordinates::length} -> reduce@{operator: max} -> !OUT::write
 
 '
 ' -> !OUT::write
 
 // part 2
-[ $field -> flatten -> $it.sum -> (<..~10000> $it !) ] -> $it::length -> !OUT::write
+[ $field -> flatten -> $.sum -> (<..~10000> $ !) ] -> $::length -> !OUT::write

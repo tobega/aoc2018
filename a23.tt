@@ -2,30 +2,30 @@ composer nanobot
   { (<'pos=<'>) x: <INT>, (<','>) y: <INT>, (<','>) z: <INT>, (<'>, r='>) range: <INT> }
 end nanobot
 
-def bots: [ $IN::lines -> nanobot ]
+def bots: [ $IN::lines -> nanobot ];
 
 templates abs
-  <0..> $it ! <> -$it !
+  <0..> $ ! <> -$ !
 end abs
 
 templates reduce@{op:}
-  @: $it(1)
-  $it(2..-1)... -> (@reduce: [$@reduce, $it] -> op) -> void
+  @: $(1);
+  $(2..-1)... -> @reduce: [$@reduce, $] -> op;
   $@ !
 end reduce
 
 // part1
 templates manhattanDistance@{from:}
-  (($it.x - $from.x) -> abs) + (($it.y - $from.y) -> abs) + (($it.z - $from.z) -> abs) !
+  (($.x - $from.x) -> abs) + (($.y - $from.y) -> abs) + (($.z - $from.z) -> abs) !
 end manhattanDistance
 
 templates biggestRange
-  <?($it(1).range <$it(2).range..>)> $it(1) ! <> $it(2) !
+  <?($(1).range <$(2).range..>)> $(1) ! <> $(2) !
 end biggestRange
 
-def biggest: $bots -> reduce@{op:biggestRange}
+def biggest: $bots -> reduce@{op:biggestRange};
 
-[ $bots... -> manhattanDistance@{from:$biggest} -> (<..$biggest.range> $it !) ] -> $it::length -> !OUT::write
+[ $bots... -> manhattanDistance@{from:$biggest} -> (<..$biggest.range> $ !) ] -> $::length -> !OUT::write
 
 '
 ' -> !OUT::write
@@ -42,88 +42,88 @@ def biggest: $bots -> reduce@{op:biggestRange}
 // 8: - x - y - z <= r - a - b - c
 
 templates isFeasible
-  @: 1
-  def bot: $it
-  1..4 -> (<?($bot.constraints($it) + $bot.constraints(-$it) <..~0>)> @isFeasible: 0) -> void
+  @: 1;
+  def bot: $;
+  1..4 -> (<?($bot.constraints($) + $bot.constraints(-$) <..~0>)> @isFeasible: 0;) -> !VOID
   $@ !
 end isFeasible
 
 templates octahedronAround
   { intersectingBots: 1, constraints: [
-    $it.range + $it.x + $it.y + $it.z,
-    $it.range + $it.x + $it.y - $it.z,
-    $it.range + $it.x - $it.y + $it.z,
-    $it.range + $it.x - $it.y - $it.z,
-    $it.range - $it.x + $it.y + $it.z,
-    $it.range - $it.x + $it.y - $it.z,
-    $it.range - $it.x - $it.y + $it.z,
-    $it.range - $it.x - $it.y - $it.z
+    $.range + $.x + $.y + $.z,
+    $.range + $.x + $.y - $.z,
+    $.range + $.x - $.y + $.z,
+    $.range + $.x - $.y - $.z,
+    $.range - $.x + $.y + $.z,
+    $.range - $.x + $.y - $.z,
+    $.range - $.x - $.y + $.z,
+    $.range - $.x - $.y - $.z
   ]} !
 end octahedronAround
 
 templates min
-  <?($it(1) <..$it(2)>)> $it(1) ! <> $it(2) !
+  <?($(1) <..$(2)>)> $(1) ! <> $(2) !
 end min
 
 templates transpose
-  def a: $it
-  [1..$a(1)::length -> $a(1..-1;$it)] !
+  def a: $;
+  [1..$a(1)::length -> $a(1..-1;$)] !
 end transpose
 
 templates intersect
-  { intersectingBots: $it(1).intersectingBots + $it(2).intersectingBots,
-    constraints: [[$it(1).constraints, $it(2).constraints] -> transpose ... -> min] } !
+  { intersectingBots: $(1).intersectingBots + $(2).intersectingBots,
+    constraints: [[$(1).constraints, $(2).constraints] -> transpose ... -> min] } !
 end intersect
 
 templates part2
-  def empty: { intersectingBots: 0, constraints: [1..8 -> 999999999]}
+  def empty: { intersectingBots: 0, constraints: [1..8 -> 999999999]};
   @: { largestIntersect: $empty,
-    feasibleChoices: $it, remainingFeasibleChoices: [[]], currentIntersects: [ $empty ]}
+    feasibleChoices: $, remainingFeasibleChoices: [[]], currentIntersects: [ $empty ]};
   $@ -> #
 
   <{feasibleChoices: <[](1..)>}
-      ?($it.currentIntersects(-1).intersectingBots + $it.feasibleChoices::length
-        <$it.largestIntersect.intersectingBots~..>)>
-    def currentIntersect: [$it.currentIntersects(-1), $it.feasibleChoices(1)] -> intersect
-    ..|@.currentIntersects: $currentIntersect
-    def largestIntersect: $it.largestIntersect -> (<{ intersectingBots: <..$currentIntersect.intersectingBots>}> $currentIntersect ! <> $it !)
-    ..|@.remainingFeasibleChoices: $it.feasibleChoices(2..-1)
-    ..|@: { feasibleChoices: [ $it.feasibleChoices(2..-1)... -> [$it, $currentIntersect] -> intersect -> (<?($it -> isFeasible <1>)> $it !) ],
-      largestIntersect: $largestIntersect}
+      ?($.currentIntersects(-1).intersectingBots + $.feasibleChoices::length
+        <$.largestIntersect.intersectingBots~..>)>
+    def currentIntersect: [$.currentIntersects(-1), $.feasibleChoices(1)] -> intersect;
+    ..|@.currentIntersects: $currentIntersect;
+    def largestIntersect: $.largestIntersect -> (<{ intersectingBots: <..$currentIntersect.intersectingBots>}> $currentIntersect ! <> $ !);
+    ..|@.remainingFeasibleChoices: $.feasibleChoices(2..-1);
+    ..|@: { feasibleChoices: [ $.feasibleChoices(2..-1)... -> [$, $currentIntersect] -> intersect -> (<?($ -> isFeasible <1>)> $ !) ],
+      largestIntersect: $largestIntersect};
     $@ -> #
 
   <{remainingFeasibleChoices: <[](1..)>}>
-    ..|@: { currentIntersects: $it.currentIntersects(1..-2),
-      feasibleChoices: $it.remainingFeasibleChoices(-1),
-      remainingFeasibleChoices: $it.remainingFeasibleChoices(1..-2) }
+    ..|@: { currentIntersects: $.currentIntersects(1..-2),
+      feasibleChoices: $.remainingFeasibleChoices(-1),
+      remainingFeasibleChoices: $.remainingFeasibleChoices(1..-2) };
     $@ -> #
 
   <>
   // Shaky hypothesis: turning the octahedron equations to >= means that the
   // minimum must be when it is =. But manhattan distance is the sum of absolute
   // values, so it must be the maximum of all the octahedron >= bounds.
-    0 - ($it.largestIntersect.constraints -> reduce@{op:min}) !
+    0 - ($.largestIntersect.constraints -> reduce@{op:min}) !
 end part2
 
 templates byBiggestRange
-  $it(2).range - $it(1).range !
+  $(2).range - $(1).range !
 end byBiggestRange
 
 templates sort@{comp:}
-  @: []
-  $it -> #
+  @: [];
+  $ -> #
   <[](2..)>
-    def pivot: $it(1)
-    [ [ $it(2..-1)... -> (
-      <?([$it, $pivot] -> $comp <..0>)>
-        $it !
+    def pivot: $(1);
+    [ [ $(2..-1)... -> (
+      <?([$, $pivot] -> comp <..0>)>
+        $ !
       <>
-        ..|@sort: $it
+        ..|@sort: $;
      )] -> sort@{comp:comp}..., $pivot, $@ -> sort@{comp:comp}... ] !
    <>
-     $it !
+     $ !
 end sort
 
-def cubes: [ $bots -> sort@{comp:byBiggestRange} ... -> octahedronAround ]
+def cubes: [ $bots -> sort@{comp:byBiggestRange} ... -> octahedronAround ];
 
 $cubes -> part2 -> !OUT::write

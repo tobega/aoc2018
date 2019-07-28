@@ -2,42 +2,42 @@ composer step
   { dep: (<'Step '>) <'.'>, (<' must be finished before step '>) step: <'.'> (<' can begin.'>) }
 end step
 
-def deps: [ $IN::lines -> step ]
+def deps: [ $IN::lines -> step ];
 
 templates in@{values:}
-  def what: $it
-  @: 0
+  def what: $;
+  @: 0;
   $values... -> #
   $@ !
   <$what>
-    @: 1
+    @: 1;
 end in
 
 templates reduce@{operator:}
-  @: $it(1)
-  $it(2..-1)... -> (@reduce: [$@reduce, $it] -> $operator) -> void
+  @: $(1);
+  $(2..-1)... -> @reduce: [$@reduce, $] -> operator;
   $@ !
 end reduce
 
 templates min
-  <?($it(1)<..$it(2)>)> $it(1) !
-  <> $it(2) !
+  <?($(1)<..$(2)>)> $(1) !
+  <> $(2) !
 end min
 
 // part 1
 templates topological
- def waiting: [ $it... -> $it.step ]
- { unresolved: $it,
-   ready: [ $it... -> $it.dep -> (<?($it -> in@{values: $waiting} <0>)> $it !) ] } -> #
+ def waiting: [ $... -> $.step ];
+ { unresolved: $,
+   ready: [ $... -> $.dep -> (<?($ -> in@{values: $waiting} <0>)> $ !) ] } -> #
  <{ready: <[](1..)>}>
-   def current: $it
-   def next: $current.ready -> reduce@{operator:min}
+   def current: $;
+   def next: $current.ready -> reduce@{operator:min};
    $next !
-   def unresolved: [ $current.unresolved... -> (<?($it.dep <~$next>)> $it! ) ]
-   def waiting: [ $unresolved... -> $it.step ]
+   def unresolved: [ $current.unresolved... -> (<?($.dep <~$next>)> $! ) ];
+   def waiting: [ $unresolved... -> $.step ];
    { unresolved: $unresolved,
-     ready: [ $current.ready... -> (<~$next> $it !),
-       $current.unresolved... -> (<?($it.dep <$next>)> $it! ) -> $it.step -> (<?($it -> in@{values: $waiting} <0>)> $it !)]
+     ready: [ $current.ready... -> (<~$next> $ !),
+       $current.unresolved... -> (<?($.dep <$next>)> $! ) -> $.step -> (<?($ -> in@{values: $waiting} <0>)> $ !)]
    } -> #
 end topological
 
@@ -46,44 +46,44 @@ $deps -> topological -> !OUT::write
 ' -> !OUT::write
 
 // part 2
-def tasks: ['ABCDEFGHIJKLMNOPQRSTUVWXYZ'...]
+def tasks: ['ABCDEFGHIJKLMNOPQRSTUVWXYZ'...];
 templates taskIndex
-  def value: $it
+  def value: $;
   $tasks -> [i](<$value> $i !)... !
 end taskIndex
 
 templates minByTime
-  <?($it(1).time<..$it(2).time>)> $it(1) !
-  <> $it(2) !
+  <?($(1).time<..$(2).time>)> $(1) !
+  <> $(2) !
 end minByTime
 
 templates multi@{workers:, delay:}
- @: 0
- def waiting: [ $it... -> $it.step ]
- { unresolved: $it,
-   ready: [ $it... -> $it.dep -> (<?($it -> in@{values: $waiting} <0>)> $it !) ],
+ @: 0;
+ def waiting: [ $... -> $.step ];
+ { unresolved: $,
+   ready: [ $... -> $.dep -> (<?($ -> in@{values: $waiting} <0>)> $ !) ],
    workers: []} -> #
  $@ !
 
  <{workers: <[](..$workers-1)>, ready: <[](1..)>}>
-  def current: $it
-  def next: $current.ready -> reduce@{operator:min}
+  def current: $;
+  def next: $current.ready -> reduce@{operator:min};
   { workers: [ $current.workers..., {task: $next, time: $delay + ($next -> taskIndex) }],
-    ready: [$current.ready... -> (<~$next> $it!)],
+    ready: [$current.ready... -> (<~$next> $!)],
     unresolved: $current.unresolved } -> #
 
  <{workers: <[](1..)>}>
-   def mintime: $it.workers -> reduce@{operator:minByTime} -> $it.time
-   @: $mintime + $@
-   def current: $it
-   def workers: [ $it.workers... ->  { task: $it.task, time: $it.time - $mintime } ]
-   def done: [$workers...  -> (<?($it.time <0>)> $it !) -> $it.task]
-   def unresolved: [ $current.unresolved... -> (<?($it.dep -> in@{values:$done} <0>)> $it! ) ]
-   def waiting: [ $unresolved... -> $it.step ]
+   def mintime: $.workers -> reduce@{operator:minByTime} -> $.time;
+   @: $mintime + $@;
+   def current: $;
+   def workers: [ $.workers... ->  { task: $.task, time: $.time - $mintime } ];
+   def done: [$workers...  -> (<?($.time <0>)> $ !) -> $.task];
+   def unresolved: [ $current.unresolved... -> (<?($.dep -> in@{values:$done} <0>)> $! ) ];
+   def waiting: [ $unresolved... -> $.step ];
    { unresolved: $unresolved,
-     ready: [ $current.ready... -> (<?($it -> in@{values:$done} <0>)> $it !),
-       $current.unresolved... -> (<?($it.dep -> in@{values:$done} <1>)> $it! ) -> $it.step -> (<?($it -> in@{values: $waiting} <0>)> $it !)],
-     workers: [ $workers... -> (<?($it.time <1..>)> $it !)]
+     ready: [ $current.ready... -> (<?($ -> in@{values:$done} <0>)> $ !),
+       $current.unresolved... -> (<?($.dep -> in@{values:$done} <1>)> $! ) -> $.step -> (<?($ -> in@{values: $waiting} <0>)> $ !)],
+     workers: [ $workers... -> (<?($.time <1..>)> $ !)]
    } -> #
 end multi
 

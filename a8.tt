@@ -4,25 +4,25 @@ composer nodes
   metadata: <INT> (<WS>?)
 end nodes
 
-def root: $IN::lines -> nodes
+def root: $IN::lines -> nodes;
 
 //part 1
 
 templates sum
-  @: 0
-  $it... -> (@sum: $@sum + $it) -> void
+  @: 0;
+  $... -> @sum: $@sum + $;
   $@ !
 end sum
 
 templates getMetadata
-  [ $it -> # ] !
+  [ $ -> # ] !
 
   <{}>
-    $it.children... -> #
-    $it.metadata... -> #
+    $.children... -> #
+    $.metadata... -> #
 
   <>
-    $it !
+    $ !
 end getMetadata
 
 $root -> getMetadata -> sum -> !OUT::write
@@ -34,11 +34,11 @@ $root -> getMetadata -> sum -> !OUT::write
 
 templates nodeValue
   <{children:<[](0)>}>
-    $it.metadata -> sum !
+    $.metadata -> sum !
 
   <{children:<[](1..)>}>
-    def max: $it.children::length
-    [ $it.children([$it.metadata... -> (<1..$max> $it!)])... -> # ] -> sum !
+    def max: $.children::length;
+    [ $.children([$.metadata... -> (<1..$max> $!)])... -> # ] -> sum !
 end nodeValue
 
 $root -> nodeValue -> !OUT::write

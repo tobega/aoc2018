@@ -2,64 +2,64 @@ composer tag
   <'[a-z]+'>
 end tag
 
-def tags: [ $IN::lines -> tag ]
+def tags: [ $IN::lines -> tag ];
 
 templates twosAndThrees
   templates countOne
-    @: 1
-    def one: $it(1)
-    $it(2..-1) -> [i](<$one> @countOne: 1 + $@countOne  <> $it !) ->
-      { rest: $it } !
+    @: 1;
+    def one: $(1);
+    $(2..-1) -> [i](<$one> @countOne: 1 + $@countOne;  <> $ !) ->
+      { rest: $ } !
     $@ -> (<2> { two: 1 }! <3> { three: 1 }!) !
   end countOne
-  [ $it... -> # ] !
+  [ $... -> # ] !
 
   <'.*'>
-    def chars: [ $it... ]
-    @: { two: 0, three: 0, rest: $chars }
+    def chars: [ $... ];
+    @: { two: 0, three: 0, rest: $chars };
     $@ -> #
 
   <{rest:<[](2..)>}>
-    ..|@: $it.rest -> countOne
+    ..|@: $.rest -> countOne;
     $@ -> #
 
   <>
-    { two: $it.two, three: $it.three } !
+    { two: $.two, three: $.three } !
 end twosAndThrees
 
 templates sumTwosAndThrees
-  @: $it(1)
-  $it(2..-1)... -> #
+  @: $(1);
+  $(2..-1)... -> #
   $@ !
 
   <{}>
-    @: { two: $it.two + $@.two, three: $it.three + $@.three }
+    @: { two: $.two + $@.two, three: $.three + $@.three };
 end sumTwosAndThrees
 
 // solution to part 1, phew!!!
 
-$tags -> twosAndThrees -> sumTwosAndThrees -> ($it.two * $it.three) -> !OUT::write
+$tags -> twosAndThrees -> sumTwosAndThrees -> ($.two * $.three) -> !OUT::write
 
 '
 ' -> !OUT::write
 
 // part 2
 templates onediff
-  [ $it -> # ] !
+  [ $ -> # ] !
   <[](2..)>
-    @: [ $it(1)... ]
+    @: [ $(1)... ];
     templates diffs
-      @: 0
-      [ $it... ] -> [i](<~$@onediff($i)> @diffs: 1 + $@diffs) -> void
-      $it -> (<?($@diffs<1>)> '$($@onediff...)' ! $it !) !
+      @: 0;
+      [ $... ] -> [i](<~$@onediff($i)> @diffs: 1 + $@diffs;) -> !VOID
+      $ -> (<?($@diffs<1>)> '$@onediff...;' ! $ !) !
     end diffs
-    $it(2..-1)... -> diffs !
-    $it(2..-1) -> #
+    $(2..-1)... -> diffs !
+    $(2..-1) -> #
 end onediff
 
 templates collate
-  @: [ $it(1)... ]
-  '$([ $it(2)... ] -> [i](<$@collate($i)> $it !)...)' !
+  @: [ $(1)... ];
+  '$:[ $(2)... ] -> [i](<$@collate($i)> $ !)...;' !
 end collate
 
 $tags -> onediff -> collate -> !OUT::write

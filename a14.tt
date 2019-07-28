@@ -1,52 +1,52 @@
-def warmup: 635041
-def test1: 2018
-def test2: 51589
+def warmup: 635041;
+def test1: 2018;
+def test2: 51589;
 
 processor Recipes
-  @: { recipes: [3,7], elf: 1, alf: 2 }
+  @: { recipes: [3,7], elf: 1, alf: 2 };
 
   templates concoct // should be source
-    def brew: $@Recipes.recipes($@Recipes.elf) + $@Recipes.recipes($@Recipes.alf)
-    $brew -> (<..9> ..|@Recipes.recipes: $brew
+    def brew: $@Recipes.recipes($@Recipes.elf) + $@Recipes.recipes($@Recipes.alf);
+    $brew -> (<..9> ..|@Recipes.recipes: $brew;
       <>
-      ..|@Recipes.recipes: ($brew / 10)
-      ..|@Recipes.recipes: ($brew mod 10)) -> void
+      ..|@Recipes.recipes: ($brew / 10);
+      ..|@Recipes.recipes: ($brew mod 10);) -> !VOID
     ..|@Recipes: {elf: ($@Recipes.elf + $@Recipes.recipes($@Recipes.elf)) mod $@Recipes.recipes::length + 1,
-      alf: ($@Recipes.alf + $@Recipes.recipes($@Recipes.alf)) mod $@Recipes.recipes::length + 1 }
+      alf: ($@Recipes.alf + $@Recipes.recipes($@Recipes.alf)) mod $@Recipes.recipes::length + 1 };
   end concoct
 
   templates extract10After
-    1..$it -> concoct -> void
-    $it -> #
+    1..$ -> concoct -> !VOID
+    $ -> #
 
     <$@Recipes.recipes::length-10..>
-      0 -> concoct -> void
-      $it -> #
+      0 -> concoct -> !VOID
+      $ -> #
 
     <>
-      '$($@Recipes.recipes($it+1..$it+10)...)' !
+      '$@Recipes.recipes($+1..$+10)...;' !
   end extract10After
 
   templates findSequence
     composer parseInt <INT> end parseInt
-    def sequence: ['$it;'... -> parseInt ]
+    def sequence: ['$;'... -> parseInt ];
     templates matches
-      def prefix: $it
-      @: 1
-      $sequence -> [i](<~$@Recipes.recipes($prefix+$i)> @matches: 0) -> void
+      def prefix: $;
+      @: 1;
+      $sequence -> [i](<~$@Recipes.recipes($prefix+$i)> @matches: 0;) -> !VOID
       $@ !
     end matches
     0 -> #
     <$@Recipes.recipes::length-$sequence::length..>
       0 -> concoct !
-      $it -> #
-    <?($it -> matches <1>)> $it !
-    <> $it + 1 -> #
+      $ -> #
+    <?($ -> matches <1>)> $ !
+    <> $ + 1 -> #
   end findSequence
 end Recipes
 
 // part 1
-def scoreboard: 0 -> Recipes
+def scoreboard: 0 -> Recipes;
 $test1 -> $scoreboard::extract10After -> !OUT::write
 
 '

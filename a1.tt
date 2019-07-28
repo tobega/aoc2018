@@ -2,11 +2,11 @@ composer numbers
 <INT>
 end numbers
 
-def freqdiffs: [ $IN::lines -> numbers ]
+def freqdiffs: [ $IN::lines -> numbers ];
 
 templates sum
-  @: 0
-  $it... -> (@sum: $it + $@sum) !
+  @: 0;
+  $... -> (@sum: $ + $@sum;) !
   $@ !
 end sum
 
@@ -14,42 +14,42 @@ $freqdiffs -> sum -> !OUT::write
 
 processor Set
   templates find
-    @: $it
+    @: $;
     { start: 1, end: $@Set::length } ->  #
-    <?($it.end <..~$it.start>)>
-      -$it.start !
-    <?($@Set($it.start) <$@>)>
-      $it.start !
+    <?($.end <..~$.start>)>
+      -$.start !
+    <?($@Set($.start) <$@>)>
+      $.start !
     <>
-      def mid: ($it.start + $it.end) / 2
-      {$it..., $@Set($mid) -> (<$@find> {start: $mid} ! <..~$@find> {start: $mid + 1} ! <> {end: $mid - 1} !)...} -> #
+      def mid: ($.start + $.end) / 2;
+      {$..., $@Set($mid) -> (<$@find> {start: $mid} ! <..~$@find> {start: $mid + 1} ! <> {end: $mid - 1} !)...} -> #
   end find
   templates add
-    def item: $it
-    $it -> find -> #
+    def item: $;
+    $ -> find -> #
     <..0>
-      def pos: -$it
-      @Set: [ $@Set(1..($pos-1))..., $item, $@Set($pos..-1)... ]
+      def pos: -$;
+      @Set: [ $@Set(1..($pos-1))..., $item, $@Set($pos..-1)... ];
       1 !
     <>
       0 !
   end add
-  @: []
-  $it... -> add -> void
+  @: [];
+  $... -> add -> !VOID
 end Set
 
 templates findrepeat
-  def seen: [0] -> Set
-  @: 0
-  def adds: $it
+  def seen: [0] -> Set;
+  @: 0;
+  def adds: $;
   [] -> #
   <[](0)>
     [ $adds... -> # ] -> #
   <[](1..)>
-    $it(1) !
+    $(1) !
 
   <>
-    @: $it + $@
+    @: $ + $@;
     $@ -> $seen::add -> (<0> $@findrepeat !) !
 
 end findrepeat
