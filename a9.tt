@@ -31,7 +31,7 @@ templates game@{players:}
   $@ -> max !
   <>
     def player: (($ - 1) mod $players) + 1;
-    @($player): $ -> $ring::play -> $ + $@($player);
+    @($player): $ -> ring::play -> $ + $@($player);
 end game
 
 1618 -> game@{players: 10} -> !OUT::write

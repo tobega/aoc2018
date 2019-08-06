@@ -47,10 +47,10 @@ end Recipes
 
 // part 1
 def scoreboard: 0 -> Recipes;
-$test1 -> $scoreboard::extract10After -> !OUT::write
+$test1 -> scoreboard::extract10After -> !OUT::write
 
 '
 ' -> !OUT::write
 
 //part 2
-$test2 -> $scoreboard::findSequence -> !OUT::write
+$test2 -> scoreboard::findSequence -> !OUT::write

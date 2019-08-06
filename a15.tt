@@ -8,10 +8,8 @@ end flatten
 
 templates sum
   @: $(1);
-  $(2..-1)... -> #
+  $(2..-1)... -> @: $ + $@;
   $@ !
-  <>
-    @: $ + $@;
 end sum
 
 templates bestPosition
@@ -61,7 +59,7 @@ end sort
 processor Battleground
   @: $ -> [i,j]({ contains: $, row: $i, col: $j } !);
 
-  templates remove
+  sink remove
     def pos: $;
     @Battleground($pos.row; $pos.col).contains: '.';
   end remove
@@ -97,19 +95,20 @@ processor Battleground
         def move: $.move;
         $ -> neighbours -> moveEntry@{firstMove:$move} !
       end nextMoves
-    templates prioritizedDirection
-      <{a:<'up'>}|{b:<'up'>}>
-        'up'!
 
-      <{a:<'left'>}|{b:<'left'>}>
-        'left'!
+      templates prioritizedDirection
+        <{a:<'up'>}|{b:<'up'>}>
+          'up'!
 
-      <{a:<'right'>}|{b:<'right'>}>
-       'right'!
+        <{a:<'left'>}|{b:<'left'>}>
+          'left'!
 
-      <{a:<'down'>}|{b:<'down'>}>
-        'down'!
-    end prioritizedDirection
+        <{a:<'right'>}|{b:<'right'>}>
+         'right'!
+
+        <{a:<'down'>}|{b:<'down'>}>
+          'down'!
+      end prioritizedDirection
 
     def combattant: $;
     @: {visited: $@Battleground,
@@ -173,13 +172,12 @@ processor Battle@{setCombatValues:, isFightDecided:}
     $@Battle.beings... -> (<{col:<$col>, row:<$row>, hitPoints: <1..>}> $ !) !
   end liveBeingAtPosition
 
-  // should be sink
-  templates strike@{damage:}
+  sink strike@{damage:}
     @Battle.lastBeingStruck: 1;
     def pos: $;
     def index: $.index;
     @Battle.beings($index).hitPoints: ($@Battle.beings($index).hitPoints - $damage);
-    $@Battle.beings($index).hitPoints -> (<..0> $pos!) -> $@Battle.battleground::remove -> !VOID
+    $@Battle.beings($index).hitPoints -> (<..0> $pos!) -> !@Battle.battleground::remove
   end strike
 
   templates enemyType
@@ -189,12 +187,11 @@ processor Battle@{setCombatValues:, isFightDecided:}
 
   templates adjacentEnemy@{me:}
     def enemy: $me -> enemyType;
-    $ -> $@Battle.battleground::neighbours
+    $ -> @Battle.battleground::neighbours
       -> (<{contains:<$enemy>}> $ !) !
   end adjacentEnemy
 
-  // should be sink
-  templates takeTurn
+  sink takeTurn
     def who: $.index;
     def enemy: $.type -> enemyType;
     $@Battle.beings($who) -> #
@@ -206,15 +203,13 @@ processor Battle@{setCombatValues:, isFightDecided:}
       <?($(1).hitPoints <..$(2).hitPoints>)> -1 !
       <> 1 !
     end lowPoints
-    ..|@Battle.beings($who): $ -> $@Battle.battleground::maybeMove@{target:$enemy}
-      -> { row: $.row, col: $.col};
+    $ -> @Battle.battleground::maybeMove@{target:$enemy}
+          -> ..|@Battle.beings($who): { row: $.row, col: $.col};
     [ $@Battle.beings($who) -> adjacentEnemy@{me: $@Battle.beings($who).type} -> liveBeingAtPosition
-    ] -> (<[](1..)> $!) -> lowest@{comp:lowPoints} -> first@{comp: bestPosition} -> strike@{damage: $@Battle.beings($who).attackValue}
-      -> !VOID
+    ] -> (<[](1..)> $!) -> lowest@{comp:lowPoints} -> first@{comp: bestPosition} -> !strike@{damage: $@Battle.beings($who).attackValue}
   end takeTurn
 
-  // should be source
-  templates run
+  source run
     @: {round: -1, isDone: 0};
     $@ -> #
 
@@ -222,7 +217,7 @@ processor Battle@{setCombatValues:, isFightDecided:}
       @.round: $@.round + 1;
       $@Battle.beings -> sort@{comp: bestPosition}...
         -> (<{hitPoints: <1..>}> $ !)
-        -> takeTurn -> !VOID
+        -> !takeTurn
       @.isDone: $@Battle.beings -> isFightDecided;
       $@ -> #
 
