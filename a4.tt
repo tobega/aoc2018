@@ -1,9 +1,9 @@
 composer record
   { time: (<'\['>) <ISO_DATE_TIME> (<'] '>), note: <TO_LINE_END> }
 
-  ISO_DATE_TIME: <'\d\d\d\d-\d\d-\d\d \d\d:\d\d'>
+  rule ISO_DATE_TIME: <'\d\d\d\d-\d\d-\d\d \d\d:\d\d'>
 
-  TO_LINE_END: <'[^\n]*'> (<'\n'>?)
+  rule TO_LINE_END: <'[^\n]*'> (<'\n'>?)
 end record
 
 templates quicksort@{comparator:}

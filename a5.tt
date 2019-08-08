@@ -1,7 +1,7 @@
 composer polymerReaction
   [ (<reaction>*) <suffix>* ]
-  suffix: <'.'> (<reaction>*)
-  reaction: <'(?i)([a-z])(?-i)(?!\1)(?i)\1'>
+  rule suffix: <'.'> (<reaction>*)
+  rule reaction: <'(?i)([a-z])(?-i)(?!\1)(?i)\1'>
 end polymerReaction
 
 templates reactAll
@@ -23,21 +23,12 @@ $polymer -> reactAll -> !OUT::write
 ' -> !OUT::write
 
 // part 2
-templates in@{values:}
-  def what: $;
-  @: 0;
-  $values... -> #
-  $@ !
-  <$what>
-    @: 1;
-end in
-
 def allUnits: [ 'aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ'... ];
 def pairs: [ 1..$allUnits::length:2 ->  $allUnits($..$+1)];
 
 templates findShortest
   templates removeUnit@{unit:}
-    [ $polymer... -> (<?($ -> in@{values:$unit} <0>)> $ !) ] !
+    [ $polymer... -> (<?($unit <~[<$>]>)> $ !) ] !
   end removeUnit
   @: $polymer::length;
   $... -> removeUnit@{unit:$} -> reactAll -> #

@@ -88,15 +88,6 @@ end unique
 def infinites: [ $field(1;1..-1)..., $field(1..-1;1)..., $field(-1;1..-1)..., $field(1..-1;-1)...]
   -> [ $... -> $.closest ] -> quicksort@{comparator: natural} -> unique;
 
-templates in@{values:}
-  def what: $;
-  @: 0;
-  $values... -> #
-  $@ !
-  <$what>
-    @: 1;
-end in
-
 templates flatten
   <[]>
     $... -> #
@@ -116,7 +107,7 @@ templates count@{low:,high:}
   $@ !
 end count
 
-[ $field -> flatten -> $.closest -> (<1.. ?($ -> in@{values: $infinites} <0>)> $ !) ]
+[ $field -> flatten -> $.closest -> (<1.. ?($infinites <~[<$>]>)> $ !) ]
   -> count@{low: 1, high: $coordinates::length} -> reduce@{operator: max} -> !OUT::write
 
 '

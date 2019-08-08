@@ -1,7 +1,7 @@
 composer nodes
   <node>
-  node: { (def childCount: <INT>) (<WS>) (def metadataCount: <INT>) (<WS>) children:[ <node>=$childCount ], metadata:[ <metadata>=$metadataCount ] } (<WS>?)
-  metadata: <INT> (<WS>?)
+  rule node: { (def childCount: <INT>;) (<WS>) (def metadataCount: <INT>;) (<WS>) children:[ <node>=$childCount ], metadata:[ <metadata>=$metadataCount ] } (<WS>?)
+  rule metadata: <INT> (<WS>?)
 end nodes
 
 def root: $IN::lines -> nodes;

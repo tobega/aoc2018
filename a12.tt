@@ -1,9 +1,9 @@
 composer plants
   (<'initial state: '>) { state: <~WS> (<WS>*), rules: <rules> }
 
-  rules: [ <rule>+ ]
+  rule rules: [ <rule>+ ]
 
-  rule: { pattern: <'[.#]+'> (<' => '>), result: <'[.#]'> } (<WS>*)
+  rule rule: { pattern: <'[.#]+'> (<' => '>), result: <'[.#]'> } (<WS>*)
 end plants
 
 templates encodeRule
