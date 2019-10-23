@@ -21,7 +21,7 @@ processor Set
     <?($@Set($.start) <$@>)>
       $.start !
     <>
-      def mid: ($.start + $.end) / 2;
+      def mid: ($.start + $.end) ~/ 2;
       {$..., $@Set($mid) -> (<$@find> {start: $mid} ! <..~$@find> {start: $mid + 1} ! <> {end: $mid - 1} !)...} -> #
   end find
   templates add

@@ -9,7 +9,7 @@ processor Recipes
     def brew: $@Recipes.recipes($@Recipes.elf) + $@Recipes.recipes($@Recipes.alf);
     $brew -> (<..9> ..|@Recipes.recipes: $brew;
       <>
-      ..|@Recipes.recipes: ($brew / 10);
+      ..|@Recipes.recipes: ($brew ~/ 10);
       ..|@Recipes.recipes: ($brew mod 10);) -> !VOID
     ..|@Recipes: {elf: ($@Recipes.elf + $@Recipes.recipes($@Recipes.elf)) mod $@Recipes.recipes::length + 1,
       alf: ($@Recipes.alf + $@Recipes.recipes($@Recipes.alf)) mod $@Recipes.recipes::length + 1 };
