@@ -128,10 +128,19 @@ processor Battleground
       $@.atDistance... -> ..|@findDirectionToMove.visited($.row;$.col): $ -> {row: $.row, col: $.col, contains: 'visited'};
       def next: [$@.atDistance... -> nextMoves
         -> (<?($@findDirectionToMove.visited($.row;$.col) <{contains:<'\.'>}>)> $ !)
+        // We can get several ways to get to the same square. First we filter out duplicates here,
+        // then we filter left-over inferior solutions when we set atDistance
+        -> (
+          <?($@findDirectionToMove.visited($.row;$.col) <{move:<$.move>}>)> !VOID
+          <?($@findDirectionToMove.visited($.row;$.col) <{move:<>}>)>
+            @findDirectionToMove.visited($.row;$.col).move:
+              {a: $.move, b: $@findDirectionToMove.visited($.row;$.col).move}  -> prioritizedDirection;
+            $!
+          <>
+            @findDirectionToMove.visited($.row;$.col).move: $.move;
+            $!
+        )
       ];
-      $next... -> ..|@findDirectionToMove.visited($.row;$.col): {move: 'any'};
-      $next... -> @findDirectionToMove.visited($.row;$.col).move:
-        {a: $.move, b: $@findDirectionToMove.visited($.row;$.col).move}  -> prioritizedDirection;
       @.atDistance: [ $next... -> (<?($.move <$@findDirectionToMove.visited($.row;$.col).move>)> $ !)];
       [$@.atDistance -> bestSquareInRange@{target:$target}] -> #
   end findDirectionToMove
