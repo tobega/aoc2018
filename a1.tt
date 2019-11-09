@@ -19,7 +19,6 @@ processor Set@{hash:}
     $ -> #
     <?($@Set($ind) <[<$>]>)> 0 ! // Already exists
     <?($@Set($ind) <[](32)>)> // rehash
-      'rehash' -> !OUT::write
       def old: $@Set;
       @Set: [1..$old::length*2 -> []];
       $old... ... -> add -> !VOID
