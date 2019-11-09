@@ -12,34 +12,32 @@ end sum
 
 $freqdiffs -> sum -> !OUT::write
 
-processor Set
-  templates find
-    @: $;
-    { start: 1, end: $@Set::length } ->  #
-    <?($.end <..~$.start>)>
-      -$.start !
-    <?($@Set($.start) <$@>)>
-      $.start !
-    <>
-      def mid: ($.start + $.end) ~/ 2;
-      {$..., $@Set($mid) -> (<$@find> {start: $mid} ! <..~$@find> {start: $mid + 1} ! <> {end: $mid - 1} !)...} -> #
-  end find
+processor Set@{hash:}
   templates add
-    def item: $;
-    $ -> find -> #
-    <..0>
-      def pos: -$;
-      @Set: [ $@Set(1..($pos-1))..., $item, $@Set($pos..-1)... ];
-      1 !
+    def val: $;
+    def ind: $ -> hash -> $ mod $@Set::length + 1;
+    $ -> #
+    <?($@Set($ind) <[<$>]>)> 0 ! // Already exists
+    <?($@Set($ind) <[](32)>)> // rehash
+      'rehash' -> !OUT::write
+      def old: $@Set;
+      @Set: [1..$old::length*2 -> []];
+      $old... ... -> add -> !VOID
+      $ -> add !
     <>
-      0 !
+      ..|@Set($ind): $;
+      1 !
   end add
-  @: [];
+  @:[1..16 -> []];
   $... -> add -> !VOID
 end Set
 
+templates identity
+  $ !
+end identity
+
 templates findrepeat
-  def seen: [0] -> Set;
+  def seen: [0] -> Set@{hash:identity};
   @: 0;
   def adds: $;
   [] -> #
