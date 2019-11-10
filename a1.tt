@@ -1,3 +1,5 @@
+import 'lib/hash'
+
 composer numbers
 <INT>
 end numbers
@@ -12,31 +14,12 @@ end sum
 
 $freqdiffs -> sum -> !OUT::write
 
-processor Set@{hash:}
-  templates add
-    def val: $;
-    def ind: $ -> hash -> $ mod $@Set::length + 1;
-    $ -> #
-    <?($@Set($ind) <[<$>]>)> 0 ! // Already exists
-    <?($@Set($ind) <[](32)>)> // rehash
-      def old: $@Set;
-      @Set: [1..$old::length*2 -> []];
-      $old... ... -> add -> !VOID
-      $ -> add !
-    <>
-      ..|@Set($ind): $;
-      1 !
-  end add
-  @:[1..16 -> []];
-  $... -> add -> !VOID
-end Set
-
 templates identity
   $ !
 end identity
 
 templates findrepeat
-  def seen: [0] -> Set@{hash:identity};
+  def seen: [0] -> hash/Set;
   @: 0;
   def adds: $;
   [] -> #
