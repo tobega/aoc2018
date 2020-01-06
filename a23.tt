@@ -25,7 +25,7 @@ end biggestRange
 
 def biggest: $bots -> reduce@{op:biggestRange};
 
-[ $bots... -> manhattanDistance@{from:$biggest} -> (<..$biggest.range> $ !) ] -> $::length -> !OUT::write
+[ $bots... -> manhattanDistance@{from:$biggest} -> \(<..$biggest.range> $ !\) ] -> $::length -> !OUT::write
 
 '
 ' -> !OUT::write
@@ -44,7 +44,7 @@ def biggest: $bots -> reduce@{op:biggestRange};
 templates isFeasible
   @: 1;
   def bot: $;
-  1..4 -> (<?($bot.constraints($) + $bot.constraints(-$) <..~0>)> @isFeasible: 0;) -> !VOID
+  1..4 -> \(<?($bot.constraints($) + $bot.constraints(-$) <..~0>)> @isFeasible: 0;\) -> !VOID
   $@ !
 end isFeasible
 
@@ -86,9 +86,9 @@ templates part2
         <$.largestIntersect.intersectingBots~..>)>
     def currentIntersect: [$.currentIntersects(-1), $.feasibleChoices(1)] -> intersect;
     ..|@.currentIntersects: $currentIntersect;
-    def largestIntersect: $.largestIntersect -> (<{ intersectingBots: <..~$currentIntersect.intersectingBots>}> $currentIntersect ! <> $ !);
+    def largestIntersect: $.largestIntersect -> \(<{ intersectingBots: <..~$currentIntersect.intersectingBots>}> $currentIntersect ! <> $ !\);
     ..|@.remainingFeasibleChoices: $.feasibleChoices(2..-1);
-    ..|@: { feasibleChoices: [ $.feasibleChoices(2..-1)... -> (<?([$, $currentIntersect] -> intersect <?($ -> isFeasible <1>)>)> $ !) ],
+    ..|@: { feasibleChoices: [ $.feasibleChoices(2..-1)... -> \(<?([$, $currentIntersect] -> intersect <?($ -> isFeasible <=1>)>)> $ !\) ],
       largestIntersect: $largestIntersect};
     $@ -> #
 
@@ -114,12 +114,12 @@ templates sort@{comp:}
   $ -> #
   <[](2..)>
     def pivot: $(1);
-    [ [ $(2..-1)... -> (
+    [ [ $(2..-1)... -> \(
       <?([$, $pivot] -> comp <..0>)>
         $ !
       <>
         ..|@sort: $;
-     )] -> sort@{comp:comp}..., $pivot, $@ -> sort@{comp:comp}... ] !
+     \)] -> sort@{comp:comp}..., $pivot, $@ -> sort@{comp:comp}... ] !
    <>
      $ !
 end sort

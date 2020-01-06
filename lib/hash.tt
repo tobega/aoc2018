@@ -5,7 +5,7 @@ processor Set
     def val: $;
     def ind: $::hashCode -> $ mod $@Set::length + 1;
     $ -> #
-    <?($@Set($ind) <[<$>]>)> 0 ! // Already exists
+    <?($@Set($ind) <[<=$>]>)> 0 ! // Already exists
     <?($@Set($ind) <[](32)>)> // rehash
       def old: $@Set;
       @Set: [1..$old::length*2 -> []];

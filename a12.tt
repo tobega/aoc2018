@@ -33,17 +33,17 @@ processor Plantation
 
   templates evolve // should be sink (or really sink&source)
     templates checkAndShift
-      <{locale: <0>}>
+      <{locale: <=0>}>
         { $..., pos: $.pos + 1 } !
       <>
         def prev: $;
-        { $prev..., newState: $@Plantation.rules($prev.locale) -> (<'#'> [$prev.newState..., $prev.pos] ! <> $prev.newState !),
+        { $prev..., newState: $@Plantation.rules($prev.locale) -> \(<='#'> [$prev.newState..., $prev.pos] ! <> $prev.newState !\),
               pos: $prev.pos + 1, locale: (($prev.locale * 2) mod 32) } !
     end checkAndShift
 
     { pos: $@Plantation.state(1) - 2, i: 1, locale: 0, newState: [] } -> #
 
-    <{i: <..$@Plantation.state::length>}?($.pos <$@Plantation.state($.i)-2>)>
+    <{i: <..$@Plantation.state::length>}?($.pos <=$@Plantation.state($.i)-2>)>
       def prev: $;
       { $prev..., locale: $.locale + 1, i: $.i + 1 } -> #
 
@@ -74,7 +74,7 @@ templates makeIndexed
     @($.rule): $.result;
 end makeIndexed
 
-def startState: '$IN::lines -> ($! ' '!);' -> plants -> { state: [$.state...] -> [i](<'#'> $i - 1 !),
+def startState: '$IN::lines -> \($! ' '!\);' -> plants -> { state: [$.state...] -> \[i](<'#'> $i - 1 !\),
   rules: [ $.rules... -> { rule: $.pattern -> encodeRule, result: $.result }] -> makeIndexed};
 
 def part1: $startState -> Plantation;

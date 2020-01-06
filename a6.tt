@@ -2,7 +2,7 @@ composer coord
   { x: <INT>, (<', '>) y: <INT> }
 end coord
 
-def coordinates: [ $IN::lines -> coord ] -> [i]({ $..., id: $i } !);
+def coordinates: [ $IN::lines -> coord ] -> \[i]({ $..., id: $i } !\);
 
 templates min
   <?($(1)<..$(2)>)> $(1) !
@@ -35,12 +35,12 @@ templates quicksort@{comparator:}
   $ -> #
   <[](2..)>
     def pivot: $(1);
-    [ [ $(2..-1)... -> (
+    [ [ $(2..-1)... -> \(
       <?([$, $pivot] -> comparator <..0>)>
         $ !
       <>
         ..|@quicksort: $;
-     )] -> quicksort@{comparator:comparator}..., $pivot, $@ -> quicksort@{comparator:comparator}... ] !
+     \)] -> quicksort@{comparator:comparator}..., $pivot, $@ -> quicksort@{comparator:comparator}... ] !
    <>
      $ !
 end quicksort
@@ -48,7 +48,7 @@ end quicksort
 templates byDist
   def second: $(2).dist;
   $(1).dist -> #
-  <$second> 0 !
+  <=$second> 0 !
   <..$second> -1 !
   <> 1 !
 end byDist
@@ -59,20 +59,20 @@ templates sum
   $@ !
 end sum
 
-def field: [$bb.left..$bb.right -> (def x: $;
-  [ $bb.top..$bb.bottom -> (def y: $;
+def field: [$bb.left..$bb.right -> \(def x: $;
+  [ $bb.top..$bb.bottom -> \(def y: $;
        [ $coordinates... -> { id: $.id, dist: ($.x - $x -> abs) + ($.y - $y -> abs) } ]
        -> quicksort@{comparator: byDist}
-       -> { closest: $ -> (<?($(1).dist <$(2).dist>)> 0 ! <> $(1).id !),
+       -> { closest: $ -> \(<?($(1).dist <=$(2).dist>)> 0 ! <> $(1).id !\),
             sum: [ $... -> $.dist ] -> sum } !
-     )
-  ] !) ];
+     \)
+  ] !\) ];
 
 // part 1
 templates natural
   def second: $(2);
   $(1) -> #
-  <$second> 0 !
+  <=$second> 0 !
   <..$second> -1 !
   <> 1 !
 end natural
@@ -80,7 +80,7 @@ end natural
 templates unique
   @: $(1);
   [ $(2..-1)... -> #, $@ ] !
-  <~$@>
+  <~=$@>
     $@ !
     @: $;
 end unique
@@ -107,11 +107,11 @@ templates count@{low:,high:}
   $@ !
 end count
 
-[ $field -> flatten -> $.closest -> (<1.. ?($infinites <~[<$>]>)> $ !) ]
+[ $field -> flatten -> $.closest -> \(<1.. ?($infinites <~[<=$>]>)> $ !\) ]
   -> count@{low: 1, high: $coordinates::length} -> reduce@{operator: max} -> !OUT::write
 
 '
 ' -> !OUT::write
 
 // part 2
-[ $field -> flatten -> $.sum -> (<..~10000> $ !) ] -> $::length -> !OUT::write
+[ $field -> flatten -> $.sum -> \(<..~10000> $ !\) ] -> $::length -> !OUT::write

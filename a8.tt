@@ -38,7 +38,7 @@ templates nodeValue
 
   <{children:<[](1..)>}>
     def max: $.children::length;
-    def childSelector: [$.metadata... -> (<1..$max> $!)];
+    def childSelector: [$.metadata... -> \(<1..$max> $!\)];
     [ $.children($childSelector)... -> # ] -> sum !
 end nodeValue
 

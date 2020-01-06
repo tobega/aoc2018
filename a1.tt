@@ -8,7 +8,7 @@ def freqdiffs: [ $IN::lines -> numbers ];
 
 templates sum
   @: 0;
-  $... -> (@sum: $ + $@sum;) !
+  $... -> \(@sum: $ + $@sum;\) !
   $@ !
 end sum
 
@@ -30,7 +30,7 @@ templates findrepeat
 
   <>
     @: $ + $@;
-    $@ -> seen::add -> (<0> $@findrepeat !) !
+    $@ -> seen::add -> \(<=0> $@findrepeat !\) !
 
 end findrepeat
 

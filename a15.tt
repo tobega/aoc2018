@@ -37,7 +37,7 @@ templates lowest@{comp:}
   @: [$(1)];
   $(2..-1)... -> #
   $@!
-  <?([$, $@(1)] -> comp <0>)> ..|@: $;
+  <?([$, $@(1)] -> comp <=0>)> ..|@: $;
   <?([$, $@(1)] -> comp <..~0>)> @: [$];
 end lowest
 
@@ -46,18 +46,18 @@ templates sort@{comp:}
   $ -> #
   <[](2..)>
     def pivot: $(1);
-    [ [ $(2..-1)... -> (
+    [ [ $(2..-1)... -> \(
       <?([$, $pivot] -> comp <..0>)>
         $ !
       <>
         ..|@sort: $;
-     )] -> sort@{comp:comp}..., $pivot, $@ -> sort@{comp:comp}... ] !
+     \)] -> sort@{comp:comp}..., $pivot, $@ -> sort@{comp:comp}... ] !
    <>
      $ !
 end sort
 
 processor Battleground
-  @: $ -> [i,j]({ contains: $, row: $i, col: $j } !);
+  @: $ -> \[i;j]({ contains: $, row: $i, col: $j } !\);
 
   sink remove
     def pos: $;
@@ -72,22 +72,22 @@ processor Battleground
   templates inRange@{target:}
     @: 0;
     $ -> neighbours
-      -> (<{contains:<$target>}> @inRange: 1;) -> !VOID
+      -> \(<{contains:<=$target>}> @inRange: 1;\) -> !VOID
     $@ !
   end inRange
 
   templates bestSquareInRange@{target:}
     @: [];
     $... -> #
-    $@ -> (<[](1..)> $!) -> first@{comp:bestPosition} !
+    $@ -> \(<[](1..)> $!\) -> first@{comp:bestPosition} !
 
-    <?($ -> inRange@{target:$target} <1>)>
+    <?($ -> inRange@{target:$target} <=1>)>
       ..|@: $;
   end bestSquareInRange
 
   templates findDirectionToMove@{target:}
       templates moveEntry@{firstMove:}
-        <{contains:<'\.'>}>
+        <{contains:<='.'>}>
           { $..., move: $firstMove } !
       end moveEntry
 
@@ -97,16 +97,16 @@ processor Battleground
       end nextMoves
 
       templates prioritizedDirection
-        <{a:<'up'>}|{b:<'up'>}>
+        <{a:<='up'>}|{b:<='up'>}>
           'up'!
 
-        <{a:<'left'>}|{b:<'left'>}>
+        <{a:<='left'>}|{b:<='left'>}>
           'left'!
 
-        <{a:<'right'>}|{b:<'right'>}>
+        <{a:<='right'>}|{b:<='right'>}>
          'right'!
 
-        <{a:<'down'>}|{b:<'down'>}>
+        <{a:<='down'>}|{b:<='down'>}>
           'down'!
       end prioritizedDirection
 
@@ -127,11 +127,11 @@ processor Battleground
     <?($@.atDistance <[](1..)>)>
       $@.atDistance... -> ..|@findDirectionToMove.visited($.row;$.col): $ -> {row: $.row, col: $.col, contains: 'visited'};
       def next: [$@.atDistance... -> nextMoves
-        -> (<?($@findDirectionToMove.visited($.row;$.col) <{contains:<'\.'>}>)> $ !)
+        -> \(<?($@findDirectionToMove.visited($.row;$.col) <{contains:<='.'>}>)> $ !\)
         // We can get several ways to get to the same square. First we filter out duplicates here,
         // then we filter left-over inferior solutions when we set atDistance
-        -> (
-          <?($@findDirectionToMove.visited($.row;$.col) <{move:<$.move>}>)> !VOID
+        -> \(
+          <?($@findDirectionToMove.visited($.row;$.col) <{move:<=$.move>}>)> !VOID
           <?($@findDirectionToMove.visited($.row;$.col) <{move:<>}>)>
             @findDirectionToMove.visited($.row;$.col).move:
               {a: $.move, b: $@findDirectionToMove.visited($.row;$.col).move}  -> prioritizedDirection;
@@ -139,26 +139,26 @@ processor Battleground
           <>
             @findDirectionToMove.visited($.row;$.col).move: $.move;
             $!
-        )
+        \)
       ];
-      @.atDistance: [ $next... -> (<?($.move <$@findDirectionToMove.visited($.row;$.col).move>)> $ !)];
+      @.atDistance: [ $next... -> \onlyBest(<?($.move <=$@findDirectionToMove.visited($.row;$.col).move>)> $ !\onlyBest)];
       [$@.atDistance -> bestSquareInRange@{target:$target}] -> #
   end findDirectionToMove
 
   templates maybeMove@{target:}
     @: $;
-    $ -> inRange@{target:$target} -> (<0> $@maybeMove !) -> findDirectionToMove@{target:$target} -> #
+    $ -> inRange@{target:$target} -> \(<=0> $@maybeMove !\) -> findDirectionToMove@{target:$target} -> #
 
-    <'up'>
+    <='up'>
       {dr:-1, dc:0} -> #
 
-    <'left'>
+    <='left'>
       {dr:0, dc:-1} -> #
 
-    <'right'>
+    <='right'>
       {dr:0, dc:1} -> #
 
-    <'down'>
+    <='down'>
       {dr:1, dc:0} -> #
 
     <{dr:<>,dc:<>}>
@@ -172,13 +172,13 @@ end Battleground
 processor Battle@{setCombatValues:, isFightDecided:}
   @: { battleground: $ -> Battleground,
     lastBeingStruck: 0, // if last being struck, another round was completed
-    beings: [ $ -> [i,j](<'G'|'E'> { type: $, row: $i, col: $j } !)
-      -> flatten -> [i]({$..., index: $i} !) ... -> setCombatValues] };
+    beings: [ $ -> \[i;j](<='G'|='E'> { type: $, row: $i, col: $j } !\)
+      -> flatten -> \[i]({$..., index: $i} !\) ... -> setCombatValues] };
 
   templates liveBeingAtPosition
     def col:$.col;
     def row: $.row;
-    $@Battle.beings... -> (<{col:<$col>, row:<$row>, hitPoints: <1..>}> $ !) !
+    $@Battle.beings... -> \(<{col:<=$col>, row:<=$row>, hitPoints: <1..>}> $ !\) !
   end liveBeingAtPosition
 
   sink strike@{damage:}
@@ -186,7 +186,7 @@ processor Battle@{setCombatValues:, isFightDecided:}
     def pos: $;
     def index: $.index;
     @Battle.beings($index).hitPoints: ($@Battle.beings($index).hitPoints - $damage);
-    $@Battle.beings($index).hitPoints -> (<..0> $pos!) -> !@Battle.battleground::remove
+    $@Battle.beings($index).hitPoints -> \(<..0> $pos!\) -> !@Battle.battleground::remove
   end strike
 
   templates enemyType
@@ -197,7 +197,7 @@ processor Battle@{setCombatValues:, isFightDecided:}
   templates adjacentEnemy@{me:}
     def enemy: $me -> enemyType;
     $ -> @Battle.battleground::neighbours
-      -> (<{contains:<$enemy>}> $ !) !
+      -> \(<{contains:<=$enemy>}> $ !\) !
   end adjacentEnemy
 
   sink takeTurn
@@ -208,30 +208,30 @@ processor Battle@{setCombatValues:, isFightDecided:}
     <{hitPoints:<1..>}>
     @Battle.lastBeingStruck: 0;
     templates lowPoints
-      <?($(1).hitPoints <$(2).hitPoints>)> 0 !
+      <?($(1).hitPoints <=$(2).hitPoints>)> 0 !
       <?($(1).hitPoints <..$(2).hitPoints>)> -1 !
       <> 1 !
     end lowPoints
     $ -> @Battle.battleground::maybeMove@{target:$enemy}
           -> ..|@Battle.beings($who): { row: $.row, col: $.col};
     [ $@Battle.beings($who) -> adjacentEnemy@{me: $@Battle.beings($who).type} -> liveBeingAtPosition
-    ] -> (<[](1..)> $!) -> lowest@{comp:lowPoints} -> first@{comp: bestPosition} -> !strike@{damage: $@Battle.beings($who).attackValue}
+    ] -> \(<[](1..)> $!\) -> lowest@{comp:lowPoints} -> first@{comp: bestPosition} -> !strike@{damage: $@Battle.beings($who).attackValue}
   end takeTurn
 
   source run
     @: {round: -1, isDone: 0};
     $@ -> #
 
-    <{isDone: <0>}>
+    <{isDone: <=0>}>
       @.round: $@.round + 1;
       $@Battle.beings -> sort@{comp: bestPosition}...
-        -> (<{hitPoints: <1..>}> $ !)
+        -> \(<{hitPoints: <1..>}> $ !\)
         -> !takeTurn
       @.isDone: $@Battle.beings -> isFightDecided;
       $@ -> #
 
     <>
-      [ $@Battle.beings... -> (<{hitPoints: <1..>}> $.hitPoints !) ] -> sum ->  $@.isDone * ($@.round + $@Battle.lastBeingStruck) * $ !
+      [ $@Battle.beings... -> \(<{hitPoints: <1..>}> $.hitPoints !\) ] -> sum ->  $@.isDone * ($@.round + $@Battle.lastBeingStruck) * $ !
   end run
 end Battle
 
@@ -244,12 +244,12 @@ end Battle
   templates oneRaceStanding
     @: {elfAlive: 0, goblinAlive: 0};
     $... -> #
-    $@ -> (<{goblinAlive: <1>, elfAlive: <1>}> 0! <> 1!) !
+    $@ -> \(<{goblinAlive: <=1>, elfAlive: <=1>}> 0! <> 1!\) !
 
-    <{type: <'G'>, hitPoints: <1..>}>
+    <{type: <='G'>, hitPoints: <1..>}>
       ..|@: {goblinAlive: 1};
 
-    <{type: <'E'>, hitPoints: <1..>}>
+    <{type: <='E'>, hitPoints: <1..>}>
       ..|@: {elfAlive: 1};
   end oneRaceStanding
 
@@ -261,20 +261,20 @@ def battle: $input -> Battle@{setCombatValues:basicCombatValues, isFightDecided:
 templates victoryOrDeath
     @: {elfDied: 0, goblinAlive: 0};
     $... -> #
-    $@ -> (<{elfDied: <1>}> -1 ! <{goblinAlive: <1>}> 0 ! <> 1 !) !
+    $@ -> \(<{elfDied: <=1>}> -1 ! <{goblinAlive: <=1>}> 0 ! <> 1 !\) !
 
-    <{type: <'G'>, hitPoints: <1..>}>
+    <{type: <='G'>, hitPoints: <1..>}>
       ..|@: {goblinAlive: 1};
 
-    <{type: <'E'>, hitPoints: <..0>}>
+    <{type: <='E'>, hitPoints: <..0>}>
       ..|@: {elfDied: 1};
 end victoryOrDeath
 
   templates tweakedCombatValues@{elfAttack:}
-    <{type: <'G'>}>
+    <{type: <='G'>}>
       {$..., attackValue: 3, hitPoints: 200} !
 
-    <{type: <'E'>}>
+    <{type: <='E'>}>
       {$..., attackValue: $elfAttack, hitPoints: 200} !
   end tweakedCombatValues
 

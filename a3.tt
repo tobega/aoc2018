@@ -36,12 +36,12 @@ processor fabric
     $ -> #
     <[](2..)>
       def pivot: $(1);
-      [ [ $(2..-1)... -> (
+      [ [ $(2..-1)... -> \(
         <?($.y<..$pivot.y>)>
           $ !
         <>
           ..|@quicksort: $;
-       )] -> quicksort..., $pivot, $@ -> quicksort... ] !
+       \)] -> quicksort..., $pivot, $@ -> quicksort... ] !
      <>
        $ !
   end quicksort
@@ -49,10 +49,10 @@ processor fabric
   templates verticalScan
     def x: $;
     def profile: [ $@fabric.claims... ->
-      ( def w: $x - $.left;
+      \( def w: $x - $.left;
         $ -> #
         <{ left: <..$x>,  width: <$w~..> }> {y: $.top, d: 1} ! {y: $.top + $.height, d: -1} !
-      ) ]
+      \) ]
       -> quicksort;
     @: { y: $profile(1).y, level: $profile(1).d, count: 0 };
     $profile(2..-1)... -> #
@@ -61,13 +61,13 @@ processor fabric
     <>
       def level: $@.level;
       def span: $.y - $@.y;
-      def inc: $level -> (<2..> $span ! <> 0 !);
+      def inc: $level -> \(<2..> $span ! <> 0 !\);
       @: { y: $.y, level: $level + $.d, count: $@.count + $inc };
   end verticalScan
 
   templates sum
     @: 0;
-    $... -> (@sum: $ + $@sum;) -> !VOID
+    $... -> \(@sum: $ + $@sum;\) -> !VOID
     $@ !
   end sum
 
@@ -80,9 +80,9 @@ processor fabric
       def candidate: $@fabric.claims($);
       @: $;
       1..$@fabric.claims::length -> #
-      $@ -> (<1..> $ ! ) !
+      $@ -> \(<1..> $ ! \) !
 
-      <$@ | ?($@ <0>)>
+      <=$@ | ?($@ <=0>)>
         !VOID
 
       <?($@fabric.claims($)

@@ -7,7 +7,7 @@ end polymerReaction
 templates reactAll
   @: 0;
   $ -> #
-  <?($::length <$@>)>
+  <?($::length <=$@>)>
     $@ !
   <>
   @: $::length;
@@ -28,7 +28,7 @@ def pairs: [ 1..$allUnits::length:2 ->  $allUnits($..$+1)];
 
 templates findShortest
   templates removeUnit@{unit:}
-    [ $polymer... -> (<?($unit <~[<$>]>)> $ !) ] !
+    [ $polymer... -> \(<?($unit <~[<=$>]>)> $ !\) ] !
   end removeUnit
   @: $polymer::length;
   $... -> removeUnit@{unit:$} -> reactAll -> #

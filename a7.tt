@@ -19,16 +19,16 @@ end min
 templates topological
  def waiting: [ $... -> $.step ];
  { unresolved: $,
-   ready: [ $... -> $.dep -> (<?($waiting <~[<$>]>)> $ !) ] } -> #
+   ready: [ $... -> $.dep -> \(<?($waiting <~[<=$>]>)> $ !\) ] } -> #
  <{ready: <[](1..)>}>
    def current: $;
    def next: $current.ready -> reduce@{operator:min};
    $next !
-   def unresolved: [ $current.unresolved... -> (<?($.dep <~$next>)> $! ) ];
+   def unresolved: [ $current.unresolved... -> \(<?($.dep <~=$next>)> $! \) ];
    def waiting: [ $unresolved... -> $.step ];
    { unresolved: $unresolved,
-     ready: [ $current.ready... -> (<~$next> $ !),
-       $current.unresolved... -> (<?($.dep <$next>)> $! ) -> $.step -> (<?($waiting <~[<$>]>)> $ !)]
+     ready: [ $current.ready... -> \(<~=$next> $ !\),
+       $current.unresolved... -> \(<?($.dep <=$next>)> $! \) -> $.step -> \(<?($waiting <~[<=$>]>)> $ !\)]
    } -> #
 end topological
 
@@ -40,7 +40,7 @@ $deps -> topological -> !OUT::write
 def tasks: ['ABCDEFGHIJKLMNOPQRSTUVWXYZ'...];
 templates taskIndex
   def value: $;
-  $tasks -> [i](<$value> $i !)... !
+  $tasks -> \[i](<=$value> $i !\)... !
 end taskIndex
 
 templates minByTime
@@ -52,7 +52,7 @@ templates multi@{workers:, delay:}
  @: 0;
  def waiting: [ $... -> $.step ];
  { unresolved: $,
-   ready: [ $... -> $.dep -> (<?($waiting <~[<$>]>)> $ !) ],
+   ready: [ $... -> $.dep -> \(<?($waiting <~[<=$>]>)> $ !\) ],
    workers: []} -> #
  $@ !
 
@@ -60,7 +60,7 @@ templates multi@{workers:, delay:}
   def current: $;
   def next: $current.ready -> reduce@{operator:min};
   { workers: [ $current.workers..., {task: $next, time: $delay + ($next -> taskIndex) }],
-    ready: [$current.ready... -> (<~$next> $!)],
+    ready: [$current.ready... -> \(<~=$next> $!\)],
     unresolved: $current.unresolved } -> #
 
  <{workers: <[](1..)>}>
@@ -68,13 +68,13 @@ templates multi@{workers:, delay:}
    @: $mintime + $@;
    def current: $;
    def workers: [ $.workers... ->  { task: $.task, time: $.time - $mintime } ];
-   def done: [$workers...  -> (<?($.time <0>)> $ !) -> $.task];
-   def unresolved: [ $current.unresolved... -> (<?($done <~[<$.dep>]>)> $! ) ];
+   def done: [$workers...  -> \(<?($.time <=0>)> $ !\) -> $.task];
+   def unresolved: [ $current.unresolved... -> \(<?($done <~[<=$.dep>]>)> $! \) ];
    def waiting: [ $unresolved... -> $.step ];
    { unresolved: $unresolved,
-     ready: [ $current.ready... -> (<?($done <~[<$>]>)> $ !),
-       $current.unresolved... -> (<?($done <[<$.dep>]>)> $! ) -> $.step -> (<?($waiting <~[<$>]>)> $ !)],
-     workers: [ $workers... -> (<?($.time <1..>)> $ !)]
+     ready: [ $current.ready... -> \(<?($done <~[<=$>]>)> $ !\),
+       $current.unresolved... -> \(<?($done <[<=$.dep>]>)> $! \) -> $.step -> \(<?($waiting <~[<=$>]>)> $ !\)],
+     workers: [ $workers... -> \(<?($.time <1..>)> $ !\)]
    } -> #
 end multi
 
