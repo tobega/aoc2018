@@ -46,7 +46,7 @@ List<OpenPosition> parseSudoku(String input) {
   input.split('').where((element) => meaningfulInput.contains(element))
     .toList().asMap().forEach((i, s) {
       positions.add(OpenPosition(Point(i ~/ 9, i % 9),
-        digits.contains(s) ? [s] : digits.toList()));
+        digits.contains(s) ? [s] : List.of(digits)));
   });
   return positions;
 }
