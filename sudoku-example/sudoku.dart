@@ -9,7 +9,6 @@ class OpenPosition {
 
   OpenPosition withConstraint(Point where, String symbol) {
     var choicesCopy = List.of(choices);
-    if (identical(choicesCopy, choices)) throw 'aaaargh';
     if (where.x == position.x // same row
         || where.y == position.y // same column
         || (where.x ~/ 3 == position.x ~/3 && where.y ~/ 3 == position.y ~/ 3) // same block
