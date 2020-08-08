@@ -16,7 +16,7 @@ end max
 
 templates boundingbox
   @: { left: $(1).x, top: $(1).y, bottom: $(1).y, right: $(1).x };
-  $(2..-1)... -> @boundingbox: { left: [$.x, $@boundingbox.left] -> min,
+  $(2..last)... -> @boundingbox: { left: [$.x, $@boundingbox.left] -> min,
                     top: [$.y, $@boundingbox.top] -> min,
                     bottom: [$.y, $@boundingbox.bottom] -> max,
                     right: [$.x, $@boundingbox.right] -> max };
@@ -30,18 +30,18 @@ templates abs
   <> -$ !
 end abs
 
-templates quicksort@{comparator:}
+templates quicksort&{comparator:}
   @: [];
   $ -> #
-  <[](2..)>
+  when <[](2..)> do
     def pivot: $(1);
-    [ [ $(2..-1)... -> \(
-      <?([$, $pivot] -> comparator <..0>)>
+    [ [ $(2..last)... -> \(
+      when <?([$, $pivot] -> comparator <..0>)> do
         $ !
-      <>
+      otherwise
         ..|@quicksort: $;
-     \)] -> quicksort@{comparator:comparator}..., $pivot, $@ -> quicksort@{comparator:comparator}... ] !
-   <>
+     \)] -> quicksort&{comparator:comparator}..., $pivot, $@ -> quicksort&{comparator:comparator}... ] !
+   otherwise
      $ !
 end quicksort
 
@@ -62,7 +62,7 @@ end sum
 def field: [$bb.left..$bb.right -> \(def x: $;
   [ $bb.top..$bb.bottom -> \(def y: $;
        [ $coordinates... -> { id: $.id, dist: ($.x - $x -> abs) + ($.y - $y -> abs) } ]
-       -> quicksort@{comparator: byDist}
+       -> quicksort&{comparator: byDist}
        -> { closest: $ -> \(<?($(1).dist <=$(2).dist>)> 0 ! <> $(1).id !\),
             sum: [ $... -> $.dist ] -> sum } !
      \)
@@ -79,36 +79,36 @@ end natural
 
 templates unique
   @: $(1);
-  [ $(2..-1)... -> #, $@ ] !
+  [ $(2..last)... -> #, $@ ] !
   <~=$@>
     $@ !
     @: $;
 end unique
 
-def infinites: [ $field(1;1..-1)..., $field(1..-1;1)..., $field(-1;1..-1)..., $field(1..-1;-1)...]
-  -> [ $... -> $.closest ] -> quicksort@{comparator: natural} -> unique;
+def infinites: [ $field(1;1..last)..., $field(1..last;1)..., $field(last;1..last)..., $field(1..last;last)...]
+  -> [ $... -> $.closest ] -> quicksort&{comparator: natural} -> unique;
 
 templates flatten
-  <[]>
+  when <[]> do
     $... -> #
-  <>
+  otherwise
     $!
 end flatten
 
-templates reduce@{operator:}
+templates reduce&{operator:}
   @: $(1);
-  $(2..-1)... -> @reduce: [$@reduce, $] -> operator;
+  $(2..last)... -> @reduce: [$@reduce, $] -> operator;
   $@ !
 end reduce
 
-templates count@{low:,high:}
+templates count&{low:,high:}
   @: [ $low..$high -> 0 ];
   $... -> @count($-$low+1): $@count($-$low+1) + 1;
   $@ !
 end count
 
 [ $field -> flatten -> $.closest -> \(<1.. ?($infinites <~[<=$>]>)> $ !\) ]
-  -> count@{low: 1, high: $coordinates::length} -> reduce@{operator: max} -> !OUT::write
+  -> count&{low: 1, high: $coordinates::length} -> reduce&{operator: max} -> !OUT::write
 
 '
 ' -> !OUT::write

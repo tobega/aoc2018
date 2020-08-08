@@ -8,14 +8,14 @@ templates abs
   <0..> $ ! <> -$ !
 end abs
 
-templates reduce@{op:}
+templates reduce&{op:}
   @: $(1);
-  $(2..-1)... -> @reduce: [$@reduce, $] -> op;
+  $(2..last)... -> @reduce: [$@reduce, $] -> op;
   $@ !
 end reduce
 
 // part1
-templates manhattanDistance@{from:}
+templates manhattanDistance&{from:}
   (($.x - $from.x) -> abs) + (($.y - $from.y) -> abs) + (($.z - $from.z) -> abs) !
 end manhattanDistance
 
@@ -23,9 +23,9 @@ templates biggestRange
   <?($(1).range <$(2).range..>)> $(1) ! <> $(2) !
 end biggestRange
 
-def biggest: $bots -> reduce@{op:biggestRange};
+def biggest: $bots -> reduce&{op:biggestRange};
 
-[ $bots... -> manhattanDistance@{from:$biggest} -> \(<..$biggest.range> $ !\) ] -> $::length -> !OUT::write
+[ $bots... -> manhattanDistance&{from:$biggest} -> \(<..$biggest.range> $ !\) ] -> $::length -> !OUT::write
 
 '
 ' -> !OUT::write
@@ -44,7 +44,7 @@ def biggest: $bots -> reduce@{op:biggestRange};
 templates isFeasible
   @: 1;
   def bot: $;
-  1..4 -> \(<?($bot.constraints($) + $bot.constraints(-$) <..~0>)> @isFeasible: 0;\) -> !VOID
+  1..4 -> \(<?($bot.constraints($) + $bot.constraints(last+1-$) <..~0>)> @isFeasible: 0;\) -> !VOID
   $@ !
 end isFeasible
 
@@ -67,7 +67,7 @@ end min
 
 templates transpose
   def a: $;
-  [1..$a(1)::length -> $a(1..-1;$)] !
+  [1..$a(1)::length -> $a(1..last;$)] !
 end transpose
 
 templates intersect
@@ -81,49 +81,49 @@ templates part2
     feasibleChoices: $, remainingFeasibleChoices: [[]], currentIntersects: [ $empty ]};
   $@ -> #
 
-  <{feasibleChoices: <[](1..)>}
-      ?($.currentIntersects(-1).intersectingBots + $.feasibleChoices::length
-        <$.largestIntersect.intersectingBots~..>)>
-    def currentIntersect: [$.currentIntersects(-1), $.feasibleChoices(1)] -> intersect;
+  when <{feasibleChoices: <[](1..)>}
+      ?($.currentIntersects(last).intersectingBots + $.feasibleChoices::length
+        <$.largestIntersect.intersectingBots~..>)> do
+    def currentIntersect: [$.currentIntersects(last), $.feasibleChoices(1)] -> intersect;
     ..|@.currentIntersects: $currentIntersect;
     def largestIntersect: $.largestIntersect -> \(<{ intersectingBots: <..~$currentIntersect.intersectingBots>}> $currentIntersect ! <> $ !\);
-    ..|@.remainingFeasibleChoices: $.feasibleChoices(2..-1);
-    ..|@: { feasibleChoices: [ $.feasibleChoices(2..-1)... -> \(<?([$, $currentIntersect] -> intersect <?($ -> isFeasible <=1>)>)> $ !\) ],
+    ..|@.remainingFeasibleChoices: $.feasibleChoices(2..last);
+    ..|@: { feasibleChoices: [ $.feasibleChoices(2..last)... -> \(<?([$, $currentIntersect] -> intersect <?($ -> isFeasible <=1>)>)> $ !\) ],
       largestIntersect: $largestIntersect};
     $@ -> #
 
-  <{remainingFeasibleChoices: <[](1..)>}>
-    ..|@: { currentIntersects: $.currentIntersects(1..-2),
-      feasibleChoices: $.remainingFeasibleChoices(-1),
-      remainingFeasibleChoices: $.remainingFeasibleChoices(1..-2) };
+  when <{remainingFeasibleChoices: <[](1..)>}> do
+    ..|@: { currentIntersects: $.currentIntersects(1..last-1),
+      feasibleChoices: $.remainingFeasibleChoices(last),
+      remainingFeasibleChoices: $.remainingFeasibleChoices(1..last-1) };
     $@ -> #
 
-  <>
+  otherwise
   // Shaky hypothesis: turning the octahedron equations to >= means that the
   // minimum must be when it is =. But manhattan distance is the sum of absolute
   // values, so it must be the maximum of all the octahedron >= bounds.
-    0 - ($.largestIntersect.constraints -> reduce@{op:min}) !
+    0 - ($.largestIntersect.constraints -> reduce&{op:min}) !
 end part2
 
 templates byBiggestRange
   $(2).range - $(1).range !
 end byBiggestRange
 
-templates sort@{comp:}
+templates sort&{comp:}
   @: [];
   $ -> #
-  <[](2..)>
+  when <[](2..)> do
     def pivot: $(1);
-    [ [ $(2..-1)... -> \(
-      <?([$, $pivot] -> comp <..0>)>
+    [ [ $(2..last)... -> \(
+      when <?([$, $pivot] -> comp <..0>)> do
         $ !
-      <>
+      otherwise
         ..|@sort: $;
-     \)] -> sort@{comp:comp}..., $pivot, $@ -> sort@{comp:comp}... ] !
-   <>
+     \)] -> sort&{comp:comp}..., $pivot, $@ -> sort&{comp:comp}... ] !
+   otherwise
      $ !
 end sort
 
-def cubes: [ $bots -> sort@{comp:byBiggestRange} ... -> octahedronAround ];
+def cubes: [ $bots -> sort&{comp:byBiggestRange} ... -> octahedronAround ];
 
 $cubes -> part2 -> !OUT::write

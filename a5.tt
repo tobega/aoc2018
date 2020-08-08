@@ -7,9 +7,9 @@ end polymerReaction
 templates reactAll
   @: 0;
   $ -> #
-  <?($::length <=$@>)>
+  when <?($::length <=$@>)> do
     $@ !
-  <>
+  otherwise
   @: $::length;
   '$...;' -> polymerReaction -> #
 end reactAll
@@ -27,13 +27,13 @@ def allUnits: [ 'aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ'... ];
 def pairs: [ 1..$allUnits::length:2 ->  $allUnits($..$+1)];
 
 templates findShortest
-  templates removeUnit@{unit:}
+  templates removeUnit&{unit:}
     [ $polymer... -> \(<?($unit <~[<=$>]>)> $ !\) ] !
   end removeUnit
   @: $polymer::length;
-  $... -> removeUnit@{unit:$} -> reactAll -> #
+  $... -> removeUnit&{unit:$} -> reactAll -> #
   $@ !
-  <..~$@>
+  when <..~$@> do
     @: $;
 end findShortest
 

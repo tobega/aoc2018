@@ -4,9 +4,9 @@ end step
 
 def deps: [ $IN::lines -> step ];
 
-templates reduce@{operator:}
+templates reduce&{operator:}
   @: $(1);
-  $(2..-1)... -> @reduce: [$@reduce, $] -> operator;
+  $(2..last)... -> @reduce: [$@reduce, $] -> operator;
   $@ !
 end reduce
 
@@ -20,9 +20,9 @@ templates topological
  def waiting: [ $... -> $.step ];
  { unresolved: $,
    ready: [ $... -> $.dep -> \(<?($waiting <~[<=$>]>)> $ !\) ] } -> #
- <{ready: <[](1..)>}>
+ when <{ready: <[](1..)>}> do
    def current: $;
-   def next: $current.ready -> reduce@{operator:min};
+   def next: $current.ready -> reduce&{operator:min};
    $next !
    def unresolved: [ $current.unresolved... -> \(<?($.dep <~=$next>)> $! \) ];
    def waiting: [ $unresolved... -> $.step ];
@@ -48,7 +48,7 @@ templates minByTime
   <> $(2) !
 end minByTime
 
-templates multi@{workers:, delay:}
+templates multi&{workers:, delay:}
  @: 0;
  def waiting: [ $... -> $.step ];
  { unresolved: $,
@@ -56,15 +56,15 @@ templates multi@{workers:, delay:}
    workers: []} -> #
  $@ !
 
- <{workers: <[](..$workers-1)>, ready: <[](1..)>}>
+ when <{workers: <[](..$workers-1)>, ready: <[](1..)>}> do
   def current: $;
-  def next: $current.ready -> reduce@{operator:min};
+  def next: $current.ready -> reduce&{operator:min};
   { workers: [ $current.workers..., {task: $next, time: $delay + ($next -> taskIndex) }],
     ready: [$current.ready... -> \(<~=$next> $!\)],
     unresolved: $current.unresolved } -> #
 
- <{workers: <[](1..)>}>
-   def mintime: $.workers -> reduce@{operator:minByTime} -> $.time;
+ when <{workers: <[](1..)>}> do
+   def mintime: $.workers -> reduce&{operator:minByTime} -> $.time;
    @: $mintime + $@;
    def current: $;
    def workers: [ $.workers... ->  { task: $.task, time: $.time - $mintime } ];
@@ -78,5 +78,5 @@ templates multi@{workers:, delay:}
    } -> #
 end multi
 
-$deps -> multi@{workers: 5, delay: 60} -> !OUT::write
+$deps -> multi&{workers: 5, delay: 60} -> !OUT::write
 

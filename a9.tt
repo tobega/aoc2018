@@ -1,6 +1,6 @@
 templates max
   @: $(1);
-  $(2..-1)... -> #
+  $(2..last)... -> #
   $@ !
   <$@~..>
     @: $;
@@ -9,14 +9,14 @@ end max
 processor Game
   @: {head: 1, tail: 1, ring: [1..2*$ -> 0]};
   templates play
-    <?($ mod 23 <=0>)>
+    when <?($ mod 23 <=0>)> do
       @Game.ring($@Game.tail-6..$@Game.tail-1): $@Game.ring($@Game.head-5..$@Game.head)...;
       def newHead: $@Game.head - 7;
       def score: $ + $@Game.ring($newHead);
       @Game.ring($newHead): $@Game.ring($newHead + 1);
       ..|@Game: {head: $newHead, tail: $@Game.tail-6};
       $score !
-    <>
+    otherwise
       @Game.ring($@Game.head+1): $@Game.ring($@Game.tail);
       @Game.ring($@Game.head+2): $;
       ..|@Game: {head: $@Game.head + 2, tail: $@Game.tail + 1};
@@ -24,7 +24,7 @@ processor Game
   end play
 end Game
 
-templates game@{players:}
+templates game&{players:}
   def ring: $ -> Game;
   @: [ 1..$players -> 0 ];
   1..$ -> #
@@ -34,4 +34,4 @@ templates game@{players:}
     @($player): $ -> ring::play -> $ + $@($player);
 end game
 
-1618 -> game@{players: 10} -> !OUT::write
+7114400 -> game&{players: 424} -> !OUT::write

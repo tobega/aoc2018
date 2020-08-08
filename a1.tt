@@ -1,4 +1,4 @@
-import 'lib/hash'
+include 'lib/hash'
 
 composer numbers
 <INT>
@@ -23,12 +23,12 @@ templates findrepeat
   @: 0;
   def adds: $;
   [] -> #
-  <[](0)>
+  when <[](0)> do
     [ $adds... -> # ] -> #
-  <[](1..)>
+  when <[](1..)> do
     $(1) !
 
-  <>
+  otherwise
     @: $ + $@;
     $@ -> seen::add -> \(<=0> $@findrepeat !\) !
 

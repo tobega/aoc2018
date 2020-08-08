@@ -12,13 +12,13 @@ templates min
 end min
 
 templates max
-  <?($(1)<$(2)..>)> $(1) !
-  <> $(2) !
+  when <?($(1)<$(2)..>)> do $(1) !
+  otherwise $(2) !
 end max
 
 templates boundingbox
   @: { left: $(1).left, top: $(1).top, bottom: $(1).top + $(1).height, right: $(1).left + $(1).width };
-  $(2..-1)... -> #
+  $(2..last)... -> #
   $@ !
 
   <>
@@ -34,15 +34,15 @@ processor fabric
   templates quicksort
     @: [];
     $ -> #
-    <[](2..)>
+    when <[](2..)> do
       def pivot: $(1);
-      [ [ $(2..-1)... -> \(
-        <?($.y<..$pivot.y>)>
+      [ [ $(2..last)... -> \(
+        when <?($.y<..$pivot.y>)> do
           $ !
-        <>
+        otherwise
           ..|@quicksort: $;
        \)] -> quicksort..., $pivot, $@ -> quicksort... ] !
-     <>
+     otherwise
        $ !
   end quicksort
 
@@ -55,7 +55,7 @@ processor fabric
       \) ]
       -> quicksort;
     @: { y: $profile(1).y, level: $profile(1).d, count: 0 };
-    $profile(2..-1)... -> #
+    $profile(2..last)... -> #
     $@.count !
 
     <>
@@ -82,18 +82,18 @@ processor fabric
       1..$@fabric.claims::length -> #
       $@ -> \(<1..> $ ! \) !
 
-      <=$@ | ?($@ <=0>)>
+      when <=$@ | ?($@ <=0>)> do
         !VOID
 
-      <?($@fabric.claims($)
+      when <?($@fabric.claims($)
           <{top: <($candidate.top+$candidate.height)..>}
           | {left: <($candidate.left+$candidate.width)..>}
           | ?($.top + $.height <..$candidate.top>)
           | ?($.left+$.width <..$candidate.left>)>
-        )>
+        )> do
         !VOID
 
-      <>
+      otherwise
         @: 0;
     end nonOverlapping
     [ 1..$@fabric.claims::length -> nonOverlapping ] !

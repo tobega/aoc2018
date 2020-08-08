@@ -6,18 +6,18 @@ composer record
   rule TO_LINE_END: <'[^\n]*'> (<'\n'>?)
 end record
 
-templates quicksort@{comparator:}
+templates quicksort&{comparator:}
   @: [];
   $ -> #
-  <[](2..)>
+  when <[](2..)> do
     def pivot: $(1);
-    [ [ $(2..-1)... -> \(
-      <?([$, $pivot] -> comparator <..0>)>
+    [ [ $(2..last)... -> \(
+      when <?([$, $pivot] -> comparator <..0>)> do
         $ !
-      <>
+      otherwise
         ..|@quicksort: $;
-     \)] -> quicksort@{comparator:comparator}..., $pivot, $@ -> quicksort@{comparator:comparator}... ] !
-   <>
+     \)] -> quicksort&{comparator:comparator}..., $pivot, $@ -> quicksort&{comparator:comparator}... ] !
+   otherwise
      $ !
 end quicksort
 
@@ -36,7 +36,7 @@ templates shiftNaps
       [2..~$::length:2 -> { sleep: $records($).time -> minute, wake: $records($+1).time -> minute }] } !
   end collateShift
   def log: $;
-  def starts: [$ -> \[i](<{note: <'Guard #.*'>}> $i !\)..., 0];
+  def starts: [$ -> \[i](<{note: <'Guard #.*'>}> $i !\)..., $log::length+1];
   [ 1..($starts::length-1) -> $log($starts($)..($starts($+1) - 1)) -> collateShift ] !
 end shiftNaps
 
@@ -48,7 +48,7 @@ templates byTime
   <> 1 !
 end byTime
 
-def shifts: [ $IN::lines -> record ] -> quicksort@{comparator: byTime} -> shiftNaps;
+def shifts: [ $IN::lines -> record ] -> quicksort&{comparator: byTime} -> shiftNaps;
 
 // templates <[{guard:<number>}](2)>:<-1..1> guardComparator
 templates guardComparator
@@ -59,16 +59,16 @@ templates guardComparator
   <> 1 !
 end guardComparator
 
-//templates max@{comparator:<templates<[](2)>:<-1..1>>}
-templates max@{comparator:}
+//templates max&{comparator:<templates<[](2)>:<-1..1>>}
+templates max&{comparator:}
   @: $(1);
-  $(2..-1)... -> #
+  $(2..last)... -> #
   $@ !
   <?([$, $@] -> comparator <=1>)>
     @: $;
 end max
 
-def highestGuardNo: $shifts -> max@{comparator:guardComparator} -> $.guard;
+def highestGuardNo: $shifts -> max&{comparator:guardComparator} -> $.guard;
 
 templates collateGuards
   @: [ 1..$highestGuardNo -> { guard: $, naps: []} ];
@@ -108,10 +108,10 @@ templates byTimes
 end byTimes
 
 templates sleepiestMinute
-  $ -> \[i]({minute: $i - 1, times: $} !\) -> max@{comparator: byTimes} !
+  $ -> \[i]({minute: $i - 1, times: $} !\) -> max&{comparator: byTimes} !
 end sleepiestMinute
 
-$guardStats -> max@{comparator: byTotalSleep}
+$guardStats -> max&{comparator: byTotalSleep}
   -> \(def minute: $.minutes -> sleepiestMinute -> $.minute;
       $.guard * $minute !\)
   -> !OUT::write
@@ -130,4 +130,4 @@ templates bySleepiestMinute
 end bySleepiestMinute
 
 [ $guardStats... -> { guard: $.guard, sleepiestMinute: $.minutes -> sleepiestMinute } ]
-  -> max@{comparator: bySleepiestMinute} -> $.guard * $.sleepiestMinute.minute -> !OUT::write
+  -> max&{comparator: bySleepiestMinute} -> $.guard * $.sleepiestMinute.minute -> !OUT::write

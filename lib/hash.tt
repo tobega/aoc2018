@@ -1,17 +1,15 @@
-package hash
-
 processor Set
   templates add
     def val: $;
     def ind: $::hashCode -> $ mod $@Set::length + 1;
     $ -> #
-    <?($@Set($ind) <[<=$>]>)> 0 ! // Already exists
-    <?($@Set($ind) <[](32)>)> // rehash
+    when <?($@Set($ind) <[<=$>]>)> do 0 ! // Already exists
+    when <?($@Set($ind) <[](32)>)> do // rehash
       def old: $@Set;
       @Set: [1..$old::length*2 -> []];
       $old... ... -> add -> !VOID
       $ -> add !
-    <>
+    otherwise
       ..|@Set($ind): $;
       1 !
   end add

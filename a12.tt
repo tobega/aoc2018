@@ -11,16 +11,16 @@ templates encodeRule
   $... -> #
   $@ !
 
-   <'#'>
+   when <'#'> do
      @: ($@ * 2) + 1;
 
-   <'.'>
+   when <'.'> do
      @: $@ * 2;
 end encodeRule
 
-templates reduce@{f:}
+templates reduce&{f:}
   @: $(1);
-  $(2..-1)... -> @: [ $@, $] -> f;
+  $(2..last)... -> @: [ $@, $] -> f;
   $@!
 end reduce
 
@@ -33,9 +33,9 @@ processor Plantation
 
   templates evolve // should be sink (or really sink&source)
     templates checkAndShift
-      <{locale: <=0>}>
+      when <{locale: <=0>}> do
         { $..., pos: $.pos + 1 } !
-      <>
+      otherwise
         def prev: $;
         { $prev..., newState: $@Plantation.rules($prev.locale) -> \(<='#'> [$prev.newState..., $prev.pos] ! <> $prev.newState !\),
               pos: $prev.pos + 1, locale: (($prev.locale * 2) mod 32) } !
@@ -43,17 +43,17 @@ processor Plantation
 
     { pos: $@Plantation.state(1) - 2, i: 1, locale: 0, newState: [] } -> #
 
-    <{i: <..$@Plantation.state::length>}?($.pos <=$@Plantation.state($.i)-2>)>
+    when <{i: <..$@Plantation.state::length>}?($.pos <=$@Plantation.state($.i)-2>)> do
       def prev: $;
       { $prev..., locale: $.locale + 1, i: $.i + 1 } -> #
 
-    <{i: <..$@Plantation.state::length>}>
+    when <{i: <..$@Plantation.state::length>}> do
       $ -> checkAndShift -> #
 
-    <{locale: <0~..>}>
+    when <{locale: <0~..>}> do
       $ -> checkAndShift -> #
 
-    <>
+    otherwise
       ..|@Plantation: {state: $.newState};
   end evolve
 
@@ -61,7 +61,7 @@ processor Plantation
       templates sum
         $(1) + $(2) !
       end sum
-    $@Plantation.state -> reduce@{f:sum} !
+    $@Plantation.state -> reduce&{f:sum} !
   end potSum
 
 end Plantation
@@ -70,7 +70,7 @@ templates makeIndexed
   @: [1..$::length -> '.'];
   $... -> #
   $@!
-  <{rule: <1..>}>
+  when <{rule: <1..>}> do
     @($.rule): $.result;
 end makeIndexed
 
