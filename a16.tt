@@ -1,0 +1,122 @@
+composer diagnostics
+  { samples: [<sample>+], (<WS>?) test: [<operation>+] }
+  rule sample: {(<='Before:'> <WS>) before: <registers>,
+    (<WS>) operation: <operation>,
+    (<='After:'> <WS>) after: <registers>} (<WS>)
+  rule registers: [(<='['>) <INT> (<=', '>) <INT> (<=', '>) <INT> (<=', '>) <INT> (<=']'>)]
+  rule operation: { op_num: <INT>, (<WS>) a: <INT>, (<WS>) b: <INT>, (<WS>) c: <INT> } (<WS>)
+end diagnostics
+
+def data: [$IN::lines] -> '$... -> '$;$#10;';' -> diagnostics;
+
+operator (l gt r)
+  when <?($l <..$r>)> do 0 !
+  otherwise 1 !
+end gt
+
+operator (l eq r)
+  when <?($l <=$r>)> do 1 !
+  otherwise 0 !
+end eq
+
+processor Cpu
+  @: $;
+  sink do
+    when <{op: <='addr'>, a: <0..3>, b: <0..3>, c: <0..3>}> do
+    @Cpu($.c+1): $@Cpu($.a+1) + $@Cpu($.b+1);
+    when <{op: <='addi'>, a: <0..3>, c: <0..3>}> do
+      @Cpu($.c+1): $@Cpu($.a+1) + $.b;
+    when <{op: <='mulr'>, a: <0..3>, b: <0..3>, c: <0..3>}> do
+      @Cpu($.c+1): $@Cpu($.a+1) * $@Cpu($.b+1);
+    when <{op: <='muli'>, a: <0..3>, c: <0..3>}> do
+      @Cpu($.c+1): $@Cpu($.a+1) * $.b;
+    when <{op: <='banr'>, a: <0..3>, b: <0..3>, c: <0..3>}> do
+      @Cpu($.c+1): ($@Cpu($.a+1)::asBytes and $@Cpu($.b+1)::asBytes) -> $::asInteger;
+    when <{op: <='bani'>, a: <0..3>, c: <0..3>}> do
+      @Cpu($.c+1): ($@Cpu($.a+1)::asBytes and $.b::asBytes) -> $::asInteger;
+    when <{op: <='borr'>, a: <0..3>, b: <0..3>, c: <0..3>}> do
+      @Cpu($.c+1): ($@Cpu($.a+1)::asBytes or $@Cpu($.b+1)::asBytes) -> $::asInteger;
+    when <{op: <='bori'>, a: <0..3>, c: <0..3>}> do
+      @Cpu($.c+1): ($@Cpu($.a+1)::asBytes or $.b::asBytes) -> $::asInteger;
+    when <{op: <='setr'>, a: <0..3>,  c: <0..3>}> do
+      @Cpu($.c+1): $@Cpu($.a+1);
+    when <{op: <='seti'>, c: <0..3>}> do
+      @Cpu($.c+1): $.a;
+    when <{op: <='gtir'>, b: <0..3>, c: <0..3>}> do
+      @Cpu($.c+1): ($.a gt $@Cpu($.b+1));
+    when <{op: <='gtri'>, a: <0..3>, c: <0..3>}> do
+      @Cpu($.c+1): ($@Cpu($.a+1) gt $.b);
+    when <{op: <='gtrr'>, a: <0..3>, b: <0..3>, c: <0..3>}> do
+      @Cpu($.c+1): ($@Cpu($.a+1) gt $@Cpu($.b+1));
+      when <{op: <='eqir'>, b: <0..3>, c: <0..3>}> do
+      @Cpu($.c+1): ($.a eq $@Cpu($.b+1));
+    when <{op: <='eqri'>, a: <0..3>, c: <0..3>}> do
+      @Cpu($.c+1): ($@Cpu($.a+1) eq $.b);
+    when <{op: <='eqrr'>, a: <0..3>, b: <0..3>, c: <0..3>}> do
+      @Cpu($.c+1): ($@Cpu($.a+1) eq $@Cpu($.b+1));
+    otherwise
+      'bleep $;' -> !OUT::write
+  end do
+  source registers
+    $@Cpu !
+  end registers
+end Cpu
+
+def ops: ['addr', 'addi', 'mulr', 'muli', 'banr', 'bani', 'borr', 'bori', 'setr', 'seti', 'gtir', 'gtri', 'gtrr', 'eqir', 'eqri', 'eqrr'];
+
+templates findCompatibleOps
+  def sample: $;
+  [$ops... -> \(def op: $;
+    def cpu: $sample.before -> Cpu;
+    {$sample.operation..., op: $op} -> !cpu::do
+    $cpu::registers -> #
+    when <=$sample.after> $op !
+  \)] !
+end findCompatibleOps
+
+// part 1
+[$data.samples... -> findCompatibleOps -> \(
+  when <[](3..)> do 1 !
+\)] -> \(
+  @: 0;
+  $... -> @: $@ + 1;
+  $@!
+\) -> '$;
+
+' -> !OUT::write
+
+// part 2
+operator (a intersect b)
+  [$a... -> #] !
+  <?($b <[<=$>]>)> $ !
+end intersect
+
+test 'intersect'
+  assert ([1, 2, 3, 4] intersect [2, 3, 5]) <=[2, 3]> 'overlap'
+  assert ([3] intersect [2, 3, 5]) <=[3]> 'is contained'
+  assert ([1, 2, 3, 4] intersect [3]) <=[3]> 'contains'
+end 'intersect'
+
+templates mapOps
+  @:{map: [1..$ops::length -> $ops], unresolved: $ops};
+  $... -> \( def op_index: $.operation.op_num + 1;
+    $ -> findCompatibleOps -> @mapOps.map($op_index):($ intersect $@mapOps.map($op_index));
+  \) -> !VOID
+  $@.map -> #
+  $@.map !
+  when <[<[](1)>]> do
+    $ -> \[i](
+      when <[](1)> do
+        def op: $(1);
+        @mapOps.map($i): $op;
+        @mapOps.unresolved: $@mapOps.unresolved -> \[j](<~=$op> $!\);
+    \) -> !VOID
+    @mapOps.map: $@mapOps.map -> \[k](<[]> ($ intersect $@mapOps.unresolved) ! <> $! \);
+    $@mapOps.map -> #
+end mapOps
+
+def opsMap: $data.samples -> mapOps;
+def cpu: [1..4 -> 0] -> Cpu;
+$data.test... -> {$..., op: $opsMap($.op_num + 1)} -> !cpu::do
+$cpu::registers -> '$(1);
+' -> !OUT::write
