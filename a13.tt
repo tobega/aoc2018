@@ -1,0 +1,150 @@
+composer tracks
+  [<terrain|cart|=' '>+]
+  rule terrain: {rail: <'[-|/\\+]'>}
+  rule cart: <'[<>^v]'> -> {cart: {direction: $, turn: 1}, rail: $ -> \(
+      <='^'|='v'> '|' !
+      <='<'|='>'> '-' !
+    \)}
+end tracks
+
+def map: [$IN::lines -> \(<~=''> $!\) -> tracks];
+
+// part 1
+templates firstCrash
+  @: $;
+  [] -> #
+  when <[<[](1..)>]> do $... ...!
+  otherwise $@ -> \[i;j](
+    when <{cart: <{direction: <='^'>}>, rail: <='/'>}
+        | {cart: <{direction: <='>'>}>, rail: <='-'>}
+        | {cart: <{direction: <='v'>}>, rail: <='\'>}
+        | {cart: <{turn: <=3>, direction: <='^'>}>, rail: <='+'>}
+        | {cart: <{turn: <=2>, direction: <='>'>}>, rail: <='+'>}
+        | {cart: <{turn: <=1>, direction: <='v'>}>, rail: <='+'>}
+    > do
+      $@firstCrash($i;$j+1) -> \(<{cart:<>}> [$i,$j+1]!\)!
+      ^@firstCrash($i; $j).cart -> {direction: '>',
+          turn: $.turn -> \(when <?($@firstCrash($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!\)}
+        -> ..|@firstCrash($i;$j+1): (cart:$);
+    when <{cart: <{direction: <='^'>}>, rail: <='\'>}
+        | {cart: <{direction: <='<'>}>, rail: <='-'>}
+        | {cart: <{direction: <='v'>}>, rail: <='/'>}
+        | {cart: <{turn: <=1>, direction: <='^'>}>, rail: <='+'>}
+        | {cart: <{turn: <=2>, direction: <='<'>}>, rail: <='+'>}
+        | {cart: <{turn: <=3>, direction: <='v'>}>, rail: <='+'>}
+    > do
+  $@firstCrash($i;$j-1) -> \(<{cart:<>}> [$i,$j-1]!\)!
+    ^@firstCrash($i; $j).cart -> {direction: '<',
+        turn: $.turn -> \(when <?($@firstCrash($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!\)}
+    -> ..|@firstCrash($i;$j-1): (cart:$);
+    when <{cart: <{direction: <='^'>}>, rail: <='|'>}
+        | {cart: <{direction: <='>'>}>, rail: <='/'>}
+        | {cart: <{direction: <='<'>}>, rail: <='\'>}
+        | {cart: <{turn: <=2>, direction: <='^'>}>, rail: <='+'>}
+        | {cart: <{turn: <=1>, direction: <='>'>}>, rail: <='+'>}
+        | {cart: <{turn: <=3>, direction: <='<'>}>, rail: <='+'>}
+    > do
+  $@firstCrash($i-1;$j) -> \(<{cart:<>}> [$i-1,$j]!\)!
+    ^@firstCrash($i; $j).cart -> {direction: '^',
+        turn: $.turn -> \(when <?($@firstCrash($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!\)}
+    -> ..|@firstCrash($i-1;$j): (cart:$);
+    when <{cart: <{direction: <='<'>}>, rail: <='/'>}
+        | {cart: <{direction: <='>'>}>, rail: <='\'>}
+        | {cart: <{direction: <='v'>}>, rail: <='|'>}
+        | {cart: <{turn: <=1>, direction: <='<'>}>, rail: <='+'>}
+        | {cart: <{turn: <=3>, direction: <='>'>}>, rail: <='+'>}
+        | {cart: <{turn: <=2>, direction: <='v'>}>, rail: <='+'>}
+    > do
+  $@firstCrash($i+1;$j) -> \(<{cart:<>}> [$i+1,$j]!\)!
+    ^@firstCrash($i; $j).cart -> {direction: 'v',
+        turn: $.turn -> \(when <?($@firstCrash($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!\)}
+    -> ..|@firstCrash($i+1;$j): (cart:$);
+  \) -> #
+end firstCrash
+
+//$map -> firstCrash -> '$(2) -> $-1;,$(1) -> $-1;
+//' -> !OUT::write
+
+//part 2
+templates lastCart
+  @: $;
+  [] -> #
+  when <[](1)> do $(1)!
+  otherwise $@ -> \[i;j](
+    when <{cart: <{direction: <='^'>}>, rail: <='/'>}
+        | {cart: <{direction: <='>'>}>, rail: <='-'>}
+        | {cart: <{direction: <='v'>}>, rail: <='\'>}
+        | {cart: <{turn: <=3>, direction: <='^'>}>, rail: <='+'>}
+        | {cart: <{turn: <=2>, direction: <='>'>}>, rail: <='+'>}
+        | {cart: <{turn: <=1>, direction: <='v'>}>, rail: <='+'>}
+    > do
+    $@lastCart($i; $j) -> \stillThere( when <{cart:<>}> do 
+      def next: ^@lastCart($i; $j).cart -> {direction: '>',
+          turn: $.turn -> \(when <?($@lastCart($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!\)}
+        -> (cart:$);
+      $@lastCart($i;$j+1) -> \(
+        when <{cart:<>}> do ^@lastCart($i;$j+1).cart -> !VOID
+        otherwise
+          ..|@lastCart($i;$j+1): $next;
+          [$i, $j+1] !
+      \)!
+    \stillThere)!
+    when <{cart: <{direction: <='^'>}>, rail: <='\'>}
+        | {cart: <{direction: <='<'>}>, rail: <='-'>}
+        | {cart: <{direction: <='v'>}>, rail: <='/'>}
+        | {cart: <{turn: <=1>, direction: <='^'>}>, rail: <='+'>}
+        | {cart: <{turn: <=2>, direction: <='<'>}>, rail: <='+'>}
+        | {cart: <{turn: <=3>, direction: <='v'>}>, rail: <='+'>}
+    > do
+    $@lastCart($i; $j) -> \stillThere( when <{cart:<>}> do 
+    def next: ^@lastCart($i; $j).cart -> {direction: '<',
+        turn: $.turn -> \(when <?($@lastCart($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!\)}
+    -> (cart:$);
+    $@lastCart($i;$j-1) -> \(
+      when <{cart:<>}> do ^@lastCart($i;$j-1).cart -> !VOID
+      otherwise
+        ..|@lastCart($i;$j-1): $next;
+        [$i, $j-1] !
+    \)!
+    \stillThere)!
+    when <{cart: <{direction: <='^'>}>, rail: <='|'>}
+        | {cart: <{direction: <='>'>}>, rail: <='/'>}
+        | {cart: <{direction: <='<'>}>, rail: <='\'>}
+        | {cart: <{turn: <=2>, direction: <='^'>}>, rail: <='+'>}
+        | {cart: <{turn: <=1>, direction: <='>'>}>, rail: <='+'>}
+        | {cart: <{turn: <=3>, direction: <='<'>}>, rail: <='+'>}
+    > do
+    $@lastCart($i; $j) -> \stillThere( when <{cart:<>}> do 
+    def next: ^@lastCart($i; $j).cart -> {direction: '^',
+        turn: $.turn -> \(when <?($@lastCart($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!\)}
+    -> (cart:$);
+    $@lastCart($i-1;$j) -> \(
+      when <{cart:<>}> do ^@lastCart($i-1;$j).cart -> !VOID
+      otherwise
+        ..|@lastCart($i-1;$j): $next;
+        [$i-1, $j] !
+    \)!
+    \stillThere)!
+    when <{cart: <{direction: <='<'>}>, rail: <='/'>}
+        | {cart: <{direction: <='>'>}>, rail: <='\'>}
+        | {cart: <{direction: <='v'>}>, rail: <='|'>}
+        | {cart: <{turn: <=1>, direction: <='<'>}>, rail: <='+'>}
+        | {cart: <{turn: <=3>, direction: <='>'>}>, rail: <='+'>}
+        | {cart: <{turn: <=2>, direction: <='v'>}>, rail: <='+'>}
+    > do
+    $@lastCart($i; $j) -> \stillThere( when <{cart:<>}> do 
+    def next: ^@lastCart($i; $j).cart -> {direction: 'v',
+        turn: $.turn -> \(when <?($@lastCart($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!\)}
+    -> (cart:$);
+    $@lastCart($i+1;$j) -> \(
+      when <{cart:<>}> do ^@lastCart($i+1;$j).cart -> !VOID
+      otherwise
+        ..|@lastCart($i+1;$j): $next;
+        [$i+1, $j] !
+    \)!
+    \stillThere)!
+  \) -> [$... ... -> \(<?($@lastCart($(1);$(2)) <{cart:<>}>)> $!\)] -> #
+end lastCart
+
+$map -> lastCart -> '$(2) -> $-1;,$(1) -> $-1;
+' -> !OUT::write
