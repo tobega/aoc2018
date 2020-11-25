@@ -9,52 +9,60 @@ end tracks
 
 def map: [$IN::lines -> \(<~=''> $!\) -> tracks];
 
+stereotype movingRight <{cart: <{direction: <='^'>}>, rail: <='/'>}
+| {cart: <{direction: <='>'>}>, rail: <='-'>}
+| {cart: <{direction: <='v'>}>, rail: <='\'>}
+| {cart: <{turn: <=3>, direction: <='^'>}>, rail: <='+'>}
+| {cart: <{turn: <=2>, direction: <='>'>}>, rail: <='+'>}
+| {cart: <{turn: <=1>, direction: <='v'>}>, rail: <='+'>}
+>
+
+stereotype movingLeft <{cart: <{direction: <='^'>}>, rail: <='\'>}
+| {cart: <{direction: <='<'>}>, rail: <='-'>}
+| {cart: <{direction: <='v'>}>, rail: <='/'>}
+| {cart: <{turn: <=1>, direction: <='^'>}>, rail: <='+'>}
+| {cart: <{turn: <=2>, direction: <='<'>}>, rail: <='+'>}
+| {cart: <{turn: <=3>, direction: <='v'>}>, rail: <='+'>}
+>
+
+stereotype movingUp <{cart: <{direction: <='^'>}>, rail: <='|'>}
+| {cart: <{direction: <='>'>}>, rail: <='/'>}
+| {cart: <{direction: <='<'>}>, rail: <='\'>}
+| {cart: <{turn: <=2>, direction: <='^'>}>, rail: <='+'>}
+| {cart: <{turn: <=1>, direction: <='>'>}>, rail: <='+'>}
+| {cart: <{turn: <=3>, direction: <='<'>}>, rail: <='+'>}
+>
+
+stereotype movingDown <{cart: <{direction: <='<'>}>, rail: <='/'>}
+| {cart: <{direction: <='>'>}>, rail: <='\'>}
+| {cart: <{direction: <='v'>}>, rail: <='|'>}
+| {cart: <{turn: <=1>, direction: <='<'>}>, rail: <='+'>}
+| {cart: <{turn: <=3>, direction: <='>'>}>, rail: <='+'>}
+| {cart: <{turn: <=2>, direction: <='v'>}>, rail: <='+'>}
+>
+
 // part 1
 templates firstCrash
   @: $;
   [] -> #
   when <[<[](1..)>]> do $... ...!
   otherwise $@ -> \[i;j](
-    when <{cart: <{direction: <='^'>}>, rail: <='/'>}
-        | {cart: <{direction: <='>'>}>, rail: <='-'>}
-        | {cart: <{direction: <='v'>}>, rail: <='\'>}
-        | {cart: <{turn: <=3>, direction: <='^'>}>, rail: <='+'>}
-        | {cart: <{turn: <=2>, direction: <='>'>}>, rail: <='+'>}
-        | {cart: <{turn: <=1>, direction: <='v'>}>, rail: <='+'>}
-    > do
+    when <movingRight> do
       $@firstCrash($i;$j+1) -> \(<{cart:<>}> [$i,$j+1]!\)!
       ^@firstCrash($i; $j).cart -> {direction: '>',
           turn: $.turn -> \(when <?($@firstCrash($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!\)}
         -> ..|@firstCrash($i;$j+1): (cart:$);
-    when <{cart: <{direction: <='^'>}>, rail: <='\'>}
-        | {cart: <{direction: <='<'>}>, rail: <='-'>}
-        | {cart: <{direction: <='v'>}>, rail: <='/'>}
-        | {cart: <{turn: <=1>, direction: <='^'>}>, rail: <='+'>}
-        | {cart: <{turn: <=2>, direction: <='<'>}>, rail: <='+'>}
-        | {cart: <{turn: <=3>, direction: <='v'>}>, rail: <='+'>}
-    > do
+    when <movingLeft> do
   $@firstCrash($i;$j-1) -> \(<{cart:<>}> [$i,$j-1]!\)!
     ^@firstCrash($i; $j).cart -> {direction: '<',
         turn: $.turn -> \(when <?($@firstCrash($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!\)}
     -> ..|@firstCrash($i;$j-1): (cart:$);
-    when <{cart: <{direction: <='^'>}>, rail: <='|'>}
-        | {cart: <{direction: <='>'>}>, rail: <='/'>}
-        | {cart: <{direction: <='<'>}>, rail: <='\'>}
-        | {cart: <{turn: <=2>, direction: <='^'>}>, rail: <='+'>}
-        | {cart: <{turn: <=1>, direction: <='>'>}>, rail: <='+'>}
-        | {cart: <{turn: <=3>, direction: <='<'>}>, rail: <='+'>}
-    > do
+    when <movingUp> do
   $@firstCrash($i-1;$j) -> \(<{cart:<>}> [$i-1,$j]!\)!
     ^@firstCrash($i; $j).cart -> {direction: '^',
         turn: $.turn -> \(when <?($@firstCrash($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!\)}
     -> ..|@firstCrash($i-1;$j): (cart:$);
-    when <{cart: <{direction: <='<'>}>, rail: <='/'>}
-        | {cart: <{direction: <='>'>}>, rail: <='\'>}
-        | {cart: <{direction: <='v'>}>, rail: <='|'>}
-        | {cart: <{turn: <=1>, direction: <='<'>}>, rail: <='+'>}
-        | {cart: <{turn: <=3>, direction: <='>'>}>, rail: <='+'>}
-        | {cart: <{turn: <=2>, direction: <='v'>}>, rail: <='+'>}
-    > do
+    when <movingDown> do
   $@firstCrash($i+1;$j) -> \(<{cart:<>}> [$i+1,$j]!\)!
     ^@firstCrash($i; $j).cart -> {direction: 'v',
         turn: $.turn -> \(when <?($@firstCrash($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!\)}
@@ -62,8 +70,8 @@ templates firstCrash
   \) -> #
 end firstCrash
 
-//$map -> firstCrash -> '$(2) -> $-1;,$(1) -> $-1;
-//' -> !OUT::write
+$map -> firstCrash -> '$(2) -> $-1;,$(1) -> $-1;
+' -> !OUT::write
 
 //part 2
 templates lastCart
@@ -71,13 +79,7 @@ templates lastCart
   [] -> #
   when <[](1)> do $(1)!
   otherwise $@ -> \[i;j](
-    when <{cart: <{direction: <='^'>}>, rail: <='/'>}
-        | {cart: <{direction: <='>'>}>, rail: <='-'>}
-        | {cart: <{direction: <='v'>}>, rail: <='\'>}
-        | {cart: <{turn: <=3>, direction: <='^'>}>, rail: <='+'>}
-        | {cart: <{turn: <=2>, direction: <='>'>}>, rail: <='+'>}
-        | {cart: <{turn: <=1>, direction: <='v'>}>, rail: <='+'>}
-    > do
+    when <movingRight> do
     $@lastCart($i; $j) -> \stillThere( when <{cart:<>}> do 
       def next: ^@lastCart($i; $j).cart -> {direction: '>',
           turn: $.turn -> \(when <?($@lastCart($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!\)}
@@ -89,13 +91,7 @@ templates lastCart
           [$i, $j+1] !
       \)!
     \stillThere)!
-    when <{cart: <{direction: <='^'>}>, rail: <='\'>}
-        | {cart: <{direction: <='<'>}>, rail: <='-'>}
-        | {cart: <{direction: <='v'>}>, rail: <='/'>}
-        | {cart: <{turn: <=1>, direction: <='^'>}>, rail: <='+'>}
-        | {cart: <{turn: <=2>, direction: <='<'>}>, rail: <='+'>}
-        | {cart: <{turn: <=3>, direction: <='v'>}>, rail: <='+'>}
-    > do
+    when <movingLeft> do
     $@lastCart($i; $j) -> \stillThere( when <{cart:<>}> do 
     def next: ^@lastCart($i; $j).cart -> {direction: '<',
         turn: $.turn -> \(when <?($@lastCart($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!\)}
@@ -107,13 +103,7 @@ templates lastCart
         [$i, $j-1] !
     \)!
     \stillThere)!
-    when <{cart: <{direction: <='^'>}>, rail: <='|'>}
-        | {cart: <{direction: <='>'>}>, rail: <='/'>}
-        | {cart: <{direction: <='<'>}>, rail: <='\'>}
-        | {cart: <{turn: <=2>, direction: <='^'>}>, rail: <='+'>}
-        | {cart: <{turn: <=1>, direction: <='>'>}>, rail: <='+'>}
-        | {cart: <{turn: <=3>, direction: <='<'>}>, rail: <='+'>}
-    > do
+    when <movingUp> do
     $@lastCart($i; $j) -> \stillThere( when <{cart:<>}> do 
     def next: ^@lastCart($i; $j).cart -> {direction: '^',
         turn: $.turn -> \(when <?($@lastCart($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!\)}
@@ -125,13 +115,7 @@ templates lastCart
         [$i-1, $j] !
     \)!
     \stillThere)!
-    when <{cart: <{direction: <='<'>}>, rail: <='/'>}
-        | {cart: <{direction: <='>'>}>, rail: <='\'>}
-        | {cart: <{direction: <='v'>}>, rail: <='|'>}
-        | {cart: <{turn: <=1>, direction: <='<'>}>, rail: <='+'>}
-        | {cart: <{turn: <=3>, direction: <='>'>}>, rail: <='+'>}
-        | {cart: <{turn: <=2>, direction: <='v'>}>, rail: <='+'>}
-    > do
+    when <movingDown> do
     $@lastCart($i; $j) -> \stillThere( when <{cart:<>}> do 
     def next: ^@lastCart($i; $j).cart -> {direction: 'v',
         turn: $.turn -> \(when <?($@lastCart($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!\)}
