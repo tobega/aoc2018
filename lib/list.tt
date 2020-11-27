@@ -1,0 +1,19 @@
+templates bubblesort&{compare:}
+  templates bubble
+    @: 1;
+    1..$-1 -> #
+    $@ !
+    when <?(($@bubblesort($+1) compare $@bubblesort($)) <..~0>)> do
+      @: $;
+      def temp: $@bubblesort($@);
+      @bubblesort($@): $@bubblesort($@+1);
+      @bubblesort($@+1): $temp;
+  end bubble
+
+  @: $;
+  $::length -> #
+  $@ !
+
+  when <2..> do
+    $ -> bubble -> #
+end bubblesort

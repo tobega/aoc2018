@@ -1,3 +1,5 @@
+include 'lib/list'
+
 composer tracks
   [<terrain|cart|=' '>+]
   rule terrain: {rail: <'[-|/\\+]'>}
@@ -78,17 +80,28 @@ $map -> firstCrash -> '$(2) -> $-1;,$(1) -> $-1;
 ' -> !OUT::write
 
 //part 2
+operator (a elementwise b)
+  1 -> #
+  when <$a::length~..?($ <$b::length~..>)> 0 !
+  when <$a::length~..> -1 !
+  when <$b::length~..> 1 !
+  when <?($a($) <..~$b($)>)> -1 !
+  when <?($a($) <$b($)~..>)> 1 !
+  otherwise $ + 1 -> #
+end elementwise
+
 templates lastCart
   @: $;
-  [] -> #
+  [$@ -> \[i;j](<{cart:<>}> [$i,$j] !\)... ...] -> #
   when <[](1)> do $(1)!
-  otherwise $@ -> \[i;j](
+  otherwise [$... -> \(
+    def i: $(1);
+    def j: $(2);
     templates nextTurnChoice
       when <?($@lastCart($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!
     end nextTurnChoice
-    $ -> #
+    $@lastCart($i; $j) -> #
     when <movingRight> do
-    $@lastCart($i; $j) -> \stillThere( when <{cart:<>}> do 
       def next: ^@lastCart($i; $j).cart -> {direction: '>', turn: $.turn -> nextTurnChoice}
         -> (cart:$);
       $@lastCart($i;$j+1) -> \(
@@ -97,9 +110,7 @@ templates lastCart
           ..|@lastCart($i;$j+1): $next;
           [$i, $j+1] !
       \)!
-    \stillThere)!
     when <movingLeft> do
-    $@lastCart($i; $j) -> \stillThere( when <{cart:<>}> do 
       def next: ^@lastCart($i; $j).cart -> {direction: '<', turn: $.turn -> nextTurnChoice}
         -> (cart:$);
       $@lastCart($i;$j-1) -> \(
@@ -108,9 +119,7 @@ templates lastCart
           ..|@lastCart($i;$j-1): $next;
           [$i, $j-1] !
       \)!
-    \stillThere)!
     when <movingUp> do
-      $@lastCart($i; $j) -> \stillThere( when <{cart:<>}> do 
       def next: ^@lastCart($i; $j).cart -> {direction: '^', turn: $.turn -> nextTurnChoice}
       -> (cart:$);
       $@lastCart($i-1;$j) -> \(
@@ -119,9 +128,7 @@ templates lastCart
           ..|@lastCart($i-1;$j): $next;
           [$i-1, $j] !
       \)!
-    \stillThere)!
     when <movingDown> do
-      $@lastCart($i; $j) -> \stillThere( when <{cart:<>}> do 
       def next: ^@lastCart($i; $j).cart -> {direction: 'v', turn: $.turn -> nextTurnChoice}
       -> (cart:$);
       $@lastCart($i+1;$j) -> \(
@@ -130,8 +137,7 @@ templates lastCart
           ..|@lastCart($i+1;$j): $next;
           [$i+1, $j] !
       \)!
-    \stillThere)!
-  \) -> [$... ... -> \(<?($@lastCart($(1);$(2)) <{cart:<>}>)> $!\)] -> #
+  \)] -> [$... -> \(<?($@lastCart($(1);$(2)) <{cart:<>}>)> $!\)] -> list/bubblesort&{compare: elementwise} -> #
 end lastCart
 
 $map -> lastCart -> '$(2) -> $-1;,$(1) -> $-1;
