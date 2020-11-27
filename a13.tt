@@ -50,30 +50,32 @@ stereotype movingDown <{cart: <{direction: <='<'>}>, rail: <='/'>}
 // part 1
 templates firstCrash
   @: $;
-  [] -> #
-  when <[<[](1..)>]> do $... ...!
-  otherwise $@ -> \[i;j](
+  [$@ -> \[i;j](<{cart:<>}> [$i,$j] !\)... ...] -> #
+  when <[<[](3)>]> do $... -> \(<[](3)> $! \) !
+  otherwise [$... -> \(
+    def i: $(1);
+    def j: $(2);
     templates nextTurnChoice
       when <?($@firstCrash($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!
     end nextTurnChoice
-    $ -> #
+    $@firstCrash($i; $j) -> #
     when <movingRight> do
-      $@firstCrash($i;$j+1) -> \(<{cart:<>}> [$i,$j+1]!\)!
+      [$i,$j+1, $@firstCrash($i;$j+1) -> \(<{cart:<>}> 'X'!\)]!
       ^@firstCrash($i; $j).cart -> {direction: '>', turn: $.turn -> nextTurnChoice}
         -> ..|@firstCrash($i;$j+1): (cart:$);
     when <movingLeft> do
-      $@firstCrash($i;$j-1) -> \(<{cart:<>}> [$i,$j-1]!\)!
+      [$i,$j-1, $@firstCrash($i;$j-1) -> \(<{cart:<>}> 'X'!\)]!
       ^@firstCrash($i; $j).cart -> {direction: '<', turn: $.turn -> nextTurnChoice}
         -> ..|@firstCrash($i;$j-1): (cart:$);
     when <movingUp> do
-      $@firstCrash($i-1;$j) -> \(<{cart:<>}> [$i-1,$j]!\)!
+      [$i-1,$j, $@firstCrash($i-1;$j) -> \(<{cart:<>}> 'X'!\)]!
       ^@firstCrash($i; $j).cart -> {direction: '^', turn: $.turn -> nextTurnChoice}
         -> ..|@firstCrash($i-1;$j): (cart:$);
     when <movingDown> do
-      $@firstCrash($i+1;$j) -> \(<{cart:<>}> [$i+1,$j]!\)!
+      [$i+1,$j, $@firstCrash($i+1;$j) -> \(<{cart:<>}> 'X'!\)]!
       ^@firstCrash($i; $j).cart -> {direction: 'v', turn: $.turn -> nextTurnChoice}
         -> ..|@firstCrash($i+1;$j): (cart:$);
-  \) -> #
+  \)] -> list/bubblesort&{compare: elementwise} -> #
 end firstCrash
 
 $map -> firstCrash -> '$(2) -> $-1;,$(1) -> $-1;
@@ -93,7 +95,7 @@ end elementwise
 templates lastCart
   @: $;
   [$@ -> \[i;j](<{cart:<>}> [$i,$j] !\)... ...] -> #
-  when <[](1)> do $(1)!
+  when <[](..1)> do $(1)!
   otherwise [$... -> \(
     def i: $(1);
     def j: $(2);
