@@ -1,0 +1,55 @@
+// Re-implementation of day 6 using Tailspin relational algebra and other new features
+composer coord
+  { x: <INT>, (<', '>) y: <INT> }
+end coord
+
+def coordinates: {| [ $IN::lines -> coord ] -> \[i]({ $..., id: $i } !\) ... |};
+
+def bounding_box: $coordinates(collect
+  {left: Min&{by: :(x:), select: :(x:)},
+    top: Min&{by: :(y:), select: :(y:)},
+    bottom: Max&{by: :(y:), select: :(y:)},
+    right: Max&{by: :(x:), select: :(x:)}} by {|{}|}) ...;
+
+templates abs
+  when <0..> do $!
+  otherwise -$!
+end abs
+
+processor UniqueMinAndSum
+  @: {sum: 0};
+  sink accumulate
+    @UniqueMinAndSum.sum: $@UniqueMinAndSum.sum + $.dist;
+    $ -> #
+    when <?($@UniqueMinAndSum <{coord: VOID}>)> do ..|@UniqueMinAndSum: $;
+    when <{dist: <=$@UniqueMinAndSum.dist>}> do @UniqueMinAndSum.coord: 0;
+    when <{dist: <..$@UniqueMinAndSum.dist>}> do ..|@UniqueMinAndSum: $;
+  end accumulate
+  source result
+    $@UniqueMinAndSum!
+  end result
+end UniqueMinAndSum
+
+def closest: {|
+  {by $bounding_box.left..$bounding_box.right -> (x: $), by $bounding_box.top..$bounding_box.bottom -> (y:$)}
+  -> \( def point: $;
+    {x: $.x, y: $.y,
+      $coordinates({coord: §.id, dist: (§.x - $point.x -> abs) + (§.y - $point.y -> abs)})... -> ..=UniqueMinAndSum
+    }!
+  \)
+|};
+
+def infinites: {| $closest... -> \(
+  when <{x: <=$bounding_box.left>}
+    |{x: <=$bounding_box.right>}
+    |{y: <=$bounding_box.top>}
+    |{y: <=$bounding_box.bottom>}> do $! \) -> {coord: $.coord} |};
+
+// part 1
+($closest notMatching ($infinites union {|{coord: 0}|})) -> $(collect {size: Count} by $closest({coord:}))
+  -> $(collect {largest: Max&{by: :(size:), select: :(size:)}} by {|{}|}) -> !OUT::write
+
+'
+' -> !OUT::write
+// part 2
+$closest... -> \(<{sum: <..~10000>}> $!\) -> ..=Count -> !OUT::write
