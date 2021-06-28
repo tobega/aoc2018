@@ -32,11 +32,9 @@ end UniqueMinAndSum
 
 def closest: {|
   {by $bounding_box.left..$bounding_box.right -> (x: $), by $bounding_box.top..$bounding_box.bottom -> (y:$)}
-  -> \( def point: $;
-    {x: $.x, y: $.y,
-      $coordinates({coord: §.id, dist: (§.x - $point.x -> abs) + (§.y - $point.y -> abs)})... -> ..=UniqueMinAndSum
-    }!
-  \)
+  -> {x: $.x, y: $.y,
+      $coordinates({coord: §.id, dist: (§.x - $.x -> abs) + (§.y - $.y -> abs)})... -> ..=UniqueMinAndSum
+    }
 |};
 
 def infinites: {| $closest... -> \(
@@ -46,7 +44,7 @@ def infinites: {| $closest... -> \(
     |{y: <=$bounding_box.bottom>}> do $! \) -> {coord: $.coord} |};
 
 // part 1
-($closest notMatching ($infinites union {|{coord: 0}|})) -> $(collect {size: Count} by $closest({coord:}))
+($closest notMatching ($infinites union {|{coord: 0}|})) -> $(collect {size: Count} by $coordinates({coord: §.id}))
   -> $(collect {largest: Max&{by: :(size:), select: :(size:)}} by {|{}|}) -> !OUT::write
 
 '
