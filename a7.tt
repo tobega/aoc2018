@@ -1,3 +1,6 @@
+data step <'.'>
+data dep <step>
+
 composer step
   { dep: (<'Step '>) <'.'>, (<' must be finished before step '>) step: <'.'> (<' can begin.'>) }
 end step
@@ -18,7 +21,7 @@ end min
 // part 1
 templates topological
  def waiting: [ $... -> $.step ];
- { unresolved: $,
+{ unresolved: $,
    ready: [ $... -> $.dep -> \(<?($waiting <~[<=$>]>)> $ !\) ] } -> #
  when <{ready: <[](1..)>}> do
    def current: $;
@@ -37,7 +40,7 @@ $deps -> topological -> !OUT::write
 ' -> !OUT::write
 
 // part 2
-def tasks: ['ABCDEFGHIJKLMNOPQRSTUVWXYZ'...];
+def tasks: ['ABCDEFGHIJKLMNOPQRSTUVWXYZ'... -> (step:$) -> $::value];
 templates taskIndex
   def value: $;
   $tasks -> \[i](<=$value> $i !\)... !
@@ -57,9 +60,9 @@ templates multi&{workers:, delay:}
  $@ !
 
  when <{workers: <[](..$workers-1)>, ready: <[](1..)>}> do
-  def current: $;
-  def next: $current.ready -> reduce&{operator:min};
-  { workers: [ $current.workers..., {task: $next, time: $delay + ($next -> taskIndex) }],
+   def current: $;
+   def next: $current.ready -> reduce&{operator:min};
+   { workers: [ $current.workers..., {task: $next, time: $delay + ($next -> taskIndex) }],
     ready: [$current.ready... -> \(<~=$next> $!\)],
     unresolved: $current.unresolved } -> #
 
@@ -68,15 +71,15 @@ templates multi&{workers:, delay:}
    @: $mintime + $@;
    def current: $;
    def workers: [ $.workers... ->  { task: $.task, time: $.time - $mintime } ];
-   def done: [$workers...  -> \(<?($.time <=0>)> $ !\) -> $.task];
+   def done: [$workers...  -> \(<?($.time <=0"s">)> $ !\) -> $.task];
    def unresolved: [ $current.unresolved... -> \(<?($done <~[<=$.dep>]>)> $! \) ];
    def waiting: [ $unresolved... -> $.step ];
    { unresolved: $unresolved,
      ready: [ $current.ready... -> \(<?($done <~[<=$>]>)> $ !\),
        $current.unresolved... -> \(<?($done <[<=$.dep>]>)> $! \) -> $.step -> \(<?($waiting <~[<=$>]>)> $ !\)],
-     workers: [ $workers... -> \(<?($.time <1..>)> $ !\)]
+     workers: [ $workers... -> \(<?($.time <1"s"..>)> $ !\)]
    } -> #
 end multi
 
-$deps -> multi&{workers: 5, delay: 60} -> !OUT::write
+$deps -> multi&{workers: 5, delay: 60"s"} -> !OUT::write
 

@@ -97,6 +97,8 @@ test 'intersect'
   assert ([1, 2, 3, 4] intersect [3]) <=[3]> 'contains'
 end 'intersect'
 
+data map <[ <?($ops <[<=$>]>) | [<?($ops <[<=$>]>)>]> ]>
+
 templates mapOps
   @:{map: [1..$ops::length -> $ops], unresolved: $ops};
   $... -> \( def op_index: $.operation.op_num + 1;

@@ -1,7 +1,7 @@
 composer claim
  { (<'#'>) id:<INT>, (<' @ '>)
- left:<INT>, (<','>) top:<INT>, (<': '>)
- width:<INT>, (<'x'>) height: <INT> (<'\n'>?) }
+ left:<INT> -> ($)"1", (<','>) top:<INT> -> ($)"1", (<': '>)
+ width:<INT> -> ($)"1", (<'x'>) height: <INT> -> ($)"1" (<'\n'>?) }
 end claim
 
 def claims: [ $IN::lines -> claim ];
@@ -51,10 +51,10 @@ processor fabric
     def profile: [ $@fabric.claims... ->
       \( def w: $x - $.left;
         $ -> #
-        <{ left: <..$x>,  width: <$w~..> }> {y: $.top, d: 1} ! {y: $.top + $.height, d: -1} !
+        <{ left: <..$x>,  width: <$w~..> }> {y: $.top, d: 1"1"} ! {y: $.top + $.height, d: -1"1"} !
       \) ]
       -> quicksort;
-    @: { y: $profile(1).y, level: $profile(1).d, count: 0 };
+    @: { y: $profile(1).y, level: $profile(1).d, count: 0 "1"};
     $profile(2..last)... -> #
     $@.count !
 

@@ -11,11 +11,11 @@ end tracks
 
 def map: [$IN::lines -> \(<~=''> $!\) -> tracks];
 
-stereotype left <=1>
-stereotype straight <=2>
-stereotype right <=3>
+data left <=1>
+data straight <=2>
+data right <=3>
 
-stereotype movingRight <{cart: <{direction: <='^'>}>, rail: <='/'>}
+data movingRight <{cart: <{direction: <='^'>}>, rail: <='/'>}
 | {cart: <{direction: <='>'>}>, rail: <='-'>}
 | {cart: <{direction: <='v'>}>, rail: <='\'>}
 | {cart: <{turn: <right>, direction: <='^'>}>, rail: <='+'>}
@@ -23,7 +23,7 @@ stereotype movingRight <{cart: <{direction: <='^'>}>, rail: <='/'>}
 | {cart: <{turn: <left>, direction: <='v'>}>, rail: <='+'>}
 >
 
-stereotype movingLeft <{cart: <{direction: <='^'>}>, rail: <='\'>}
+data movingLeft <{cart: <{direction: <='^'>}>, rail: <='\'>}
 | {cart: <{direction: <='<'>}>, rail: <='-'>}
 | {cart: <{direction: <='v'>}>, rail: <='/'>}
 | {cart: <{turn: <left>, direction: <='^'>}>, rail: <='+'>}
@@ -31,7 +31,7 @@ stereotype movingLeft <{cart: <{direction: <='^'>}>, rail: <='\'>}
 | {cart: <{turn: <right>, direction: <='v'>}>, rail: <='+'>}
 >
 
-stereotype movingUp <{cart: <{direction: <='^'>}>, rail: <='|'>}
+data movingUp <{cart: <{direction: <='^'>}>, rail: <='|'>}
 | {cart: <{direction: <='>'>}>, rail: <='/'>}
 | {cart: <{direction: <='<'>}>, rail: <='\'>}
 | {cart: <{turn: <straight>, direction: <='^'>}>, rail: <='+'>}
@@ -39,7 +39,7 @@ stereotype movingUp <{cart: <{direction: <='^'>}>, rail: <='|'>}
 | {cart: <{turn: <right>, direction: <='<'>}>, rail: <='+'>}
 >
 
-stereotype movingDown <{cart: <{direction: <='<'>}>, rail: <='/'>}
+data movingDown <{cart: <{direction: <='<'>}>, rail: <='/'>}
 | {cart: <{direction: <='>'>}>, rail: <='\'>}
 | {cart: <{direction: <='v'>}>, rail: <='|'>}
 | {cart: <{turn: <left>, direction: <='<'>}>, rail: <='+'>}

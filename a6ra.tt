@@ -17,7 +17,7 @@ templates abs
 end abs
 
 processor UniqueMinAndSum
-  @: {sum: 0};
+  @: {sum: 0"1"};
   sink accumulate
     @UniqueMinAndSum.sum: $@UniqueMinAndSum.sum + $.dist;
     $ -> #
@@ -33,7 +33,7 @@ end UniqueMinAndSum
 def closest: {|
   {by $bounding_box.left..$bounding_box.right -> (x: $), by $bounding_box.top..$bounding_box.bottom -> (y:$)}
   -> {x: $.x, y: $.y,
-      $coordinates({coord: §.id, dist: (§.x - $.x -> abs) + (§.y - $.y -> abs)})... -> ..=UniqueMinAndSum
+      $coordinates({coord: §.id, dist: ((§.x - $.x -> abs) + (§.y - $.y -> abs))"1"})... -> ..=UniqueMinAndSum
     }
 |};
 

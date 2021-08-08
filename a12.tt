@@ -1,5 +1,5 @@
 composer plants
-  (<'initial state: '>) { state: <~WS> (<WS>*), rules: <rules> }
+  (<'initial state: '>) { state_string: <~WS> (<WS>*), input_rules: <rules> }
 
   rule rules: [ <rule>+ ]
 
@@ -74,8 +74,8 @@ templates makeIndexed
     @($.rule): $.result;
 end makeIndexed
 
-def startState: '$IN::lines -> \($! ' '!\);' -> plants -> { state: [$.state...] -> \[i](<'#'> $i - 1 !\),
-  rules: [ $.rules... -> { rule: $.pattern -> encodeRule, result: $.result }] -> makeIndexed};
+def startState: '$IN::lines -> \($! ' '!\);' -> plants -> { state: [$.state_string...] -> \[i](<'#'> $i - 1 !\),
+  rules: [ $.input_rules... -> { rule: $.pattern -> encodeRule, result: $.result }] -> makeIndexed};
 
 def part1: $startState -> Plantation;
 1..20 -> $part1::evolve -> !VOID

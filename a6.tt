@@ -1,5 +1,5 @@
 composer coord
-  { x: <INT>, (<', '>) y: <INT> }
+  { x: <INT> -> ($)"x", (<', '>) y: <INT> -> ($)"y"}
 end coord
 
 def coordinates: [ $IN::lines -> coord ] -> \[i]({ $..., id: $i } !\);
@@ -61,9 +61,9 @@ end sum
 
 def field: [$bb.left..$bb.right -> \(def x: $;
   [ $bb.top..$bb.bottom -> \(def y: $;
-       [ $coordinates... -> { id: $.id, dist: ($.x - $x -> abs) + ($.y - $y -> abs) } ]
+       [ $coordinates... -> { id: $.id, dist: (($.x - $x -> $::raw -> abs) + ($.y - $y -> $::raw -> abs))"md" } ]
        -> quicksort&{comparator: byDist}
-       -> { closest: $ -> \(<?($(1).dist <=$(2).dist>)> 0 ! <> $(1).id !\),
+       -> { closest: $ -> \(<?($(1).dist <=$(2).dist>)> (id:0) -> $::value ! <> $(1).id !\),
             sum: [ $... -> $.dist ] -> sum } !
      \)
   ] !\) ];
@@ -114,4 +114,4 @@ end count
 ' -> !OUT::write
 
 // part 2
-[ $field -> flatten -> $.sum -> \(<..~10000> $ !\) ] -> $::length -> !OUT::write
+[ $field -> flatten -> $.sum -> \(<..~10000"md"> $ !\) ] -> $::length -> !OUT::write
