@@ -1,5 +1,5 @@
 composer nanobot
-  { (<'pos=<'>) x: <INT>, (<','>) y: <INT>, (<','>) z: <INT>, (<'>, r='>) range: <INT> }
+  { (<'pos=<'>) x: <"1">, (<','>) y: <"1">, (<','>) z: <"1">, (<'>, r='>) range: <"1"> }
 end nanobot
 
 def bots: [ $IN::lines -> nanobot ];
@@ -49,7 +49,7 @@ templates isFeasible
 end isFeasible
 
 templates octahedronAround
-  { intersectingBots: 1, constraints: [
+  { intersectingBots: 1"1", constraints: [
     $.range + $.x + $.y + $.z,
     $.range + $.x + $.y - $.z,
     $.range + $.x - $.y + $.z,

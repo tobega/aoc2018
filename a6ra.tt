@@ -1,6 +1,6 @@
 // Re-implementation of day 6 using Tailspin relational algebra and other new features
 composer coord
-  { x: <INT>, (<', '>) y: <INT> }
+  { x: <"x">, (<', '>) y: <"y"> }
 end coord
 
 def coordinates: {| [ $IN::lines -> coord ] -> \[i]({ $..., id: $i } !\) ... |};
@@ -12,7 +12,7 @@ def bounding_box: $coordinates(collect
     right: Max&{by: :(x:), select: :(x:)}} by {|{}|}) ...;
 
 templates abs
-  when <0..> do $!
+  when <?($::raw <0..>)> do $!
   otherwise -$!
 end abs
 

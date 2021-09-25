@@ -1,0 +1,72 @@
+composer record
+  { time: (<'\['>) <ISO_DATE_TIME> (<'] '>), note: <TO_LINE_END> }
+
+  rule ISO_DATE_TIME: <'\d\d\d\d-\d\d-\d\d \d\d:\d\d'>
+
+  rule TO_LINE_END: <'[^\n]*'> (<'\n'>?)
+end record
+
+templates quicksort&{comparator:}
+  @: [];
+  $ -> #
+  when <[](2..)> do
+    def pivot: $(1);
+    [ [ $(2..last)... -> \(
+      when <?([$, $pivot] -> comparator <..0>)> do
+        $ !
+      otherwise
+        ..|@quicksort: $;
+     \)] -> quicksort&{comparator:comparator}..., $pivot, $@ -> quicksort&{comparator:comparator}... ] !
+   otherwise
+     $ !
+end quicksort
+
+composer guardId
+  (<'Guard #'>) <INT> (<' begins shift'>)
+end guardId
+
+composer minute
+  (<'\d\d\d\d-\d\d-\d\d \d\d:0?'>) {minute: <INT>} -> $.minute
+end minute
+
+templates byTime
+  <?($(1).time <=$(2).time>)> 0 !
+  <?($(1).time <..$(2).time>)> -1 !
+  <> 1 !
+end byTime
+
+data shiftStarted <time>
+
+def shiftMinutes: {| [ $IN::lines -> record ] -> quicksort&{comparator: byTime} -> \collateShifts(
+  def fullHour: (minute:60) -> $::value;
+  @: {shiftStarted: '0000-00-00 00:00', guard: 0, minute: $fullHour, status: 'awake'};
+  $... -> #
+  $@.minute..~$fullHour -> {$@..., minute: $} !
+
+  when <{note: <'Guard #.*'>}> do
+    $@.minute..~$fullHour -> {$@..., minute: $} !
+    @: {shiftStarted: $.time, guard: $.note -> guardId, minute: 0, status: 'awake'};
+
+  otherwise
+    def now: $.time -> minute;
+    $@.minute..~$now -> {$@..., minute: $} !
+    ..|@: {minute: $now, status: $.note -> \(<='wakes up'> 'awake' ! <='falls asleep'> 'asleep' ! \)};
+\collateShifts) |};
+
+// part 1
+def sleepMinutes: ($shiftMinutes matching {| {status: 'asleep'} |});
+
+def sleepiestGuard: $sleepMinutes -> $(collect {minutesAsleep: Count} by $({guard:}))
+  ... -> ..=Max&{by: :(minutesAsleep:), select: :({guard:})};
+
+($sleepMinutes matching {|$sleepiestGuard|}) -> $(collect {timesAsleep: Count} by $({minute:}))
+  ... -> ..=Max&{by: :(timesAsleep:), select: :(minute:)}
+  -> $::raw * $sleepiestGuard.guard::raw -> !OUT::write
+
+'
+' -> !OUT::write
+
+// part 2
+$sleepMinutes(collect {timesAsleep: Count} by $sleepMinutes({guard:, minute:}))
+  ... -> ..=Max&{by: :(timesAsleep:), select: :()}
+  -> $.guard::raw * $.minute::raw -> !OUT::write

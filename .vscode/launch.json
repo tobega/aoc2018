@@ -10,7 +10,7 @@
         "request": "launch",
         "classPaths": ["/Users/tobe/tobega/tailspin-v0/tailspin.jar"],
         "mainClass": "tailspin.Tailspin",
-        "args": "a23.tt < a23.txt"
+        "args": "a1.tt < a1.txt"
     },
     {
         "type": "java",

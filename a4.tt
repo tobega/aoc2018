@@ -26,7 +26,7 @@ composer guardId
 end guardId
 
 composer minute
-  (<'\d\d\d\d-\d\d-\d\d \d\d:0?'>) <INT>
+  (<'\d\d\d\d-\d\d-\d\d \d\d:0?'>) {minute: <INT>} -> $.minute
 end minute
 
 templates shiftNaps
@@ -52,10 +52,8 @@ def shifts: [ $IN::lines -> record ] -> quicksort&{comparator: byTime} -> shiftN
 
 // templates <[{guard:<number>}](2)>:<-1..1> guardComparator
 templates guardComparator
-  def second: $(2).guard;
-  $(1).guard -> #
-  <=$second> 0 !
-  <..$second> -1 !
+  <?($(1).guard <=$(2).guard>)> 0 !
+  <?($(1).guard <..$(2).guard>)> -1 !
   <> 1 !
 end guardComparator
 
@@ -68,7 +66,7 @@ templates max&{comparator:}
     @: $;
 end max
 
-def highestGuardNo: $shifts -> max&{comparator:guardComparator} -> $.guard;
+def highestGuardNo: $shifts -> max&{comparator:guardComparator} -> $.guard::raw;
 
 templates collateGuards
   @: [ 1..$highestGuardNo -> { guard: $, naps: []} ];
@@ -80,10 +78,10 @@ end collateGuards
 def guardNaps: $shifts -> collateGuards;
 
 templates makeStats
-  @: { guard: $.guard, totalSleep: 0, minutes: [ 0..59 -> 0 ] };
+  @: { guard: $.guard, totalSleep: 0"min", minutes: [ 0..59 -> 0 ] };
   $.naps... -> \(def nap: $;
-    @makeStats.totalSleep: $nap.wake - $nap.sleep + $@makeStats.totalSleep;
-    $nap.sleep+1..$nap.wake -> @makeStats.minutes($): $@makeStats.minutes($) + 1;
+    @makeStats.totalSleep: $nap.wake::raw - $nap.sleep::raw + $@makeStats.totalSleep;
+    $nap.sleep~..$nap.wake -> @makeStats.minutes($): $@makeStats.minutes($) + 1;
   \) -> !VOID
   $@ !
 end makeStats
@@ -113,7 +111,7 @@ end sleepiestMinute
 
 $guardStats -> max&{comparator: byTotalSleep}
   -> \(def minute: $.minutes -> sleepiestMinute -> $.minute;
-      $.guard * $minute !\)
+      $.guard::raw * $minute::raw !\)
   -> !OUT::write
 
 '
@@ -130,4 +128,4 @@ templates bySleepiestMinute
 end bySleepiestMinute
 
 [ $guardStats... -> { guard: $.guard, sleepiestMinute: $.minutes -> sleepiestMinute } ]
-  -> max&{comparator: bySleepiestMinute} -> $.guard * $.sleepiestMinute.minute -> !OUT::write
+  -> max&{comparator: bySleepiestMinute} -> $.guard::raw * $.sleepiestMinute.minute::raw -> !OUT::write

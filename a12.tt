@@ -41,7 +41,7 @@ processor Plantation
               pos: $prev.pos + 1, locale: (($prev.locale * 2) mod 32) } !
     end checkAndShift
 
-    { pos: $@Plantation.state(1) - 2, i: 1, locale: 0, newState: [] } -> #
+    { pos: $@Plantation.state(1) - 2, i: 1"1", locale: 0"1", newState: [] } -> #
 
     when <{i: <..$@Plantation.state::length>}?($.pos <=$@Plantation.state($.i)-2>)> do
       def prev: $;
@@ -74,7 +74,7 @@ templates makeIndexed
     @($.rule): $.result;
 end makeIndexed
 
-def startState: '$IN::lines -> \($! ' '!\);' -> plants -> { state: [$.state_string...] -> \[i](<'#'> $i - 1 !\),
+def startState: '$IN::lines -> \($! ' '!\);' -> plants -> { state: [$.state_string...] -> \[i](<'#'> ($i - 1)"pot" !\),
   rules: [ $.input_rules... -> { rule: $.pattern -> encodeRule, result: $.result }] -> makeIndexed};
 
 def part1: $startState -> Plantation;

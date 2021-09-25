@@ -3,7 +3,7 @@ def test1: 2018;
 def test2: 51589;
 
 processor Recipes
-  @: { recipes: [3,7], elf: 1, alf: 2 };
+  @: { recipes: [3,7], elf: 1"1", alf: 2"1" };
 
   templates concoct // should be source
     def brew: $@Recipes.recipes($@Recipes.elf) + $@Recipes.recipes($@Recipes.alf);
@@ -47,10 +47,10 @@ end Recipes
 
 // part 1
 def scoreboard: 0 -> Recipes;
-$test1 -> scoreboard::extract10After -> !OUT::write
+$warmup -> scoreboard::extract10After -> !OUT::write
 
 '
 ' -> !OUT::write
 
 //part 2
-$test2 -> scoreboard::findSequence -> !OUT::write
+$warmup -> scoreboard::findSequence -> !OUT::write

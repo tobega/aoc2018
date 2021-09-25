@@ -1,3 +1,5 @@
+data type <'E'|'G'>, contains <type|'#'|'.'|'visited'>
+
 def input: [ $IN::lines -> [ $... ] ];
 
 templates flatten
@@ -57,7 +59,7 @@ templates sort&{comp:}
 end sort
 
 processor Battleground
-  @: $ -> \[i;j]({ contains: $, row: $i, col: $j } !\);
+  @: $ -> \[i;j]({ contains: $, row: ($i)"r", col: ($j)"c" } !\);
 
   sink remove
     def pos: $;
@@ -150,16 +152,16 @@ processor Battleground
     $ -> inRange&{target:$target} -> \(<=0> $@maybeMove !\) -> findDirectionToMove&{target:$target} -> #
 
     when <='up'> do
-      {dr:-1, dc:0} -> #
+      {dr:-1"r", dc:0"c"} -> #
 
     when <='left'> do
-      {dr:0, dc:-1} -> #
+      {dr:0"r", dc:-1"c"} -> #
 
     when <='right'> do
-      {dr:0, dc:1} -> #
+      {dr:0"r", dc:1"c"} -> #
 
     when <='down'> do
-      {dr:1, dc:0} -> #
+      {dr:1"r", dc:0"c"} -> #
 
     when <{dr:<>,dc:<>}> do
       def move: $;
@@ -172,13 +174,13 @@ end Battleground
 processor Battle&{setCombatValues:, isFightDecided:}
   @: { battleground: $ -> Battleground,
     lastBeingStruck: 0, // if last being struck, another round was completed
-    beings: [ $ -> \[i;j](<='G'|='E'> { type: $, row: $i, col: $j } !\)
+    beings: [ $ -> \[i;j](<='G'|='E'> { type: $, row: ($i)"r", col: ($j)"c" } !\)
       -> flatten -> \[i]({$..., index: $i} !\) ... -> setCombatValues] };
 
   templates liveBeingAtPosition
     def col:$.col;
     def row: $.row;
-    $@Battle.beings... -> \(<{col:<=$col>, row:<=$row>, hitPoints: <1..>}> $ !\) !
+    $@Battle.beings... -> \(<{col:<=$col>, row:<=$row>, hitPoints: <1"hp"..>}> $ !\) !
   end liveBeingAtPosition
 
   sink strike&{damage:}
@@ -186,7 +188,7 @@ processor Battle&{setCombatValues:, isFightDecided:}
     def pos: $;
     def index: $.index;
     @Battle.beings($index).hitPoints: ($@Battle.beings($index).hitPoints - $damage);
-    $@Battle.beings($index).hitPoints -> \(<..0> $pos!\) -> !@Battle.battleground::remove
+    $@Battle.beings($index).hitPoints -> \(<..0"hp"> $pos!\) -> !@Battle.battleground::remove
   end strike
 
   templates enemyType
@@ -205,7 +207,7 @@ processor Battle&{setCombatValues:, isFightDecided:}
     def enemy: $.type -> enemyType;
     $@Battle.beings($who) -> #
 
-    when <{hitPoints:<1..>}> do
+    when <{hitPoints:<1"hp"..>}> do
     @Battle.lastBeingStruck: 0;
     templates lowPoints
       when <?($(1).hitPoints <=$(2).hitPoints>)> do 0 !
@@ -219,26 +221,26 @@ processor Battle&{setCombatValues:, isFightDecided:}
   end takeTurn
 
   source run
-    @: {round: -1, isDone: 0};
+    @: {round: -1"round", isDone: 0};
     $@ -> #
 
     when <{isDone: <=0>}> do
       @.round: $@.round + 1;
       $@Battle.beings -> sort&{comp: bestPosition}...
-        -> \(<{hitPoints: <1..>}> $ !\)
+        -> \(<{hitPoints: <1"hp"..>}> $ !\)
         -> !takeTurn
       @.isDone: $@Battle.beings -> isFightDecided;
       $@ -> #
 
     otherwise
-      [ $@Battle.beings... -> \(<{hitPoints: <1..>}> $.hitPoints !\) ] -> sum ->  $@.isDone * ($@.round + $@Battle.lastBeingStruck) * $ !
+      [ $@Battle.beings... -> \(<{hitPoints: <1"hp"..>}> $.hitPoints !\) ] -> sum ->  ($@.isDone::raw * ($@.round + $@Battle.lastBeingStruck::raw) * $)"outcome" !
   end run
 end Battle
 
 // part 1
 
   templates basicCombatValues
-    {$..., attackValue: 3, hitPoints: 200} !
+    {$..., attackValue: 3"hp", hitPoints: 200"hp"} !
   end basicCombatValues
 
   templates oneRaceStanding
@@ -246,10 +248,10 @@ end Battle
     $... -> #
     $@ -> \(<{goblinAlive: <=1>, elfAlive: <=1>}> 0! <> 1!\) !
 
-    when <{type: <='G'>, hitPoints: <1..>}> do
+    when <{type: <='G'>, hitPoints: <1"hp"..>}> do
       ..|@: {goblinAlive: 1};
 
-    when <{type: <='E'>, hitPoints: <1..>}> do
+    when <{type: <='E'>, hitPoints: <1"hp"..>}> do
       ..|@: {elfAlive: 1};
   end oneRaceStanding
 
@@ -263,32 +265,32 @@ templates victoryOrDeath
     $... -> #
     $@ -> \(<{elfDied: <=1>}> -1 ! <{goblinAlive: <=1>}> 0 ! <> 1 !\) !
 
-    <{type: <='G'>, hitPoints: <1..>}>
+    <{type: <='G'>, hitPoints: <1"hp"..>}>
       ..|@: {goblinAlive: 1};
 
-    <{type: <='E'>, hitPoints: <..0>}>
+    <{type: <='E'>, hitPoints: <..0"hp">}>
       ..|@: {elfDied: 1};
 end victoryOrDeath
 
   templates tweakedCombatValues&{elfAttack:}
     <{type: <='G'>}>
-      {$..., attackValue: 3, hitPoints: 200} !
+      {$..., attackValue: 3"hp", hitPoints: 200"hp"} !
 
     <{type: <='E'>}>
-      {$..., attackValue: $elfAttack, hitPoints: 200} !
+      {$..., attackValue: $elfAttack, hitPoints: 200"hp"} !
   end tweakedCombatValues
 
 source part2
-  @: { elfAttack: 3, result: -1 };
+  @: { elfAttack: 3"hp", result: -1"outcome" };
   $@ -> #
 
-  <{result: <..~0>}>
+  <{result: <..~0"outcome">}>
     ..|@: { elfAttack: $@.elfAttack + 1 };
     def battle: $input -> Battle&{setCombatValues:tweakedCombatValues&{elfAttack: $@.elfAttack}, isFightDecided:victoryOrDeath};
     ..|@: { result: $battle::run};
     $@ -> #
 
-  <{result: <0..>}>
+  <{result: <0"outcome"..>}>
     $@ -> !OUT::write
 end part2
 

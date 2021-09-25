@@ -1,5 +1,43 @@
 include 'lib/list'
 
+data left <=1>
+data straight <=2>
+data right <=3>
+data turn <left|straight|right>
+data direction <='^'|='<'|='>'|='v'>
+
+data movingRight <{cart: <cart>, rail: <rail>}?($ <{cart: <{direction: <='^'>}>, rail: <='/'>}
+| {cart: <{direction: <='>'>}>, rail: <='-'>}
+| {cart: <{direction: <='v'>}>, rail: <='\'>}
+| {cart: <{turn: <right>, direction: <='^'>}>, rail: <='+'>}
+| {cart: <{turn: <straight>, direction: <='>'>}>, rail: <='+'>}
+| {cart: <{turn: <left>, direction: <='v'>}>, rail: <='+'>}
+>)>
+
+data movingLeft <{cart: <cart>, rail: <rail>}?($ <{cart: <{direction: <='^'>}>, rail: <='\'>}
+| {cart: <{direction: <='<'>}>, rail: <='-'>}
+| {cart: <{direction: <='v'>}>, rail: <='/'>}
+| {cart: <{turn: <left>, direction: <='^'>}>, rail: <='+'>}
+| {cart: <{turn: <straight>, direction: <='<'>}>, rail: <='+'>}
+| {cart: <{turn: <right>, direction: <='v'>}>, rail: <='+'>}
+>)>
+
+data movingUp <{cart: <cart>, rail: <rail>}?($ <{cart: <{direction: <='^'>}>, rail: <='|'>}
+| {cart: <{direction: <='>'>}>, rail: <='/'>}
+| {cart: <{direction: <='<'>}>, rail: <='\'>}
+| {cart: <{turn: <straight>, direction: <='^'>}>, rail: <='+'>}
+| {cart: <{turn: <left>, direction: <='>'>}>, rail: <='+'>}
+| {cart: <{turn: <right>, direction: <='<'>}>, rail: <='+'>}
+>)>
+
+data movingDown <{cart: <cart>, rail: <rail>}?($ <{cart: <{direction: <='<'>}>, rail: <='/'>}
+| {cart: <{direction: <='>'>}>, rail: <='\'>}
+| {cart: <{direction: <='v'>}>, rail: <='|'>}
+| {cart: <{turn: <left>, direction: <='<'>}>, rail: <='+'>}
+| {cart: <{turn: <right>, direction: <='>'>}>, rail: <='+'>}
+| {cart: <{turn: <straight>, direction: <='v'>}>, rail: <='+'>}
+>)>
+
 composer tracks
   [<terrain|cart|=' '>+]
   rule terrain: {rail: <'[-|/\\+]'>}
@@ -11,52 +49,17 @@ end tracks
 
 def map: [$IN::lines -> \(<~=''> $!\) -> tracks];
 
-data left <=1>
-data straight <=2>
-data right <=3>
-
-data movingRight <{cart: <{direction: <='^'>}>, rail: <='/'>}
-| {cart: <{direction: <='>'>}>, rail: <='-'>}
-| {cart: <{direction: <='v'>}>, rail: <='\'>}
-| {cart: <{turn: <right>, direction: <='^'>}>, rail: <='+'>}
-| {cart: <{turn: <straight>, direction: <='>'>}>, rail: <='+'>}
-| {cart: <{turn: <left>, direction: <='v'>}>, rail: <='+'>}
->
-
-data movingLeft <{cart: <{direction: <='^'>}>, rail: <='\'>}
-| {cart: <{direction: <='<'>}>, rail: <='-'>}
-| {cart: <{direction: <='v'>}>, rail: <='/'>}
-| {cart: <{turn: <left>, direction: <='^'>}>, rail: <='+'>}
-| {cart: <{turn: <straight>, direction: <='<'>}>, rail: <='+'>}
-| {cart: <{turn: <right>, direction: <='v'>}>, rail: <='+'>}
->
-
-data movingUp <{cart: <{direction: <='^'>}>, rail: <='|'>}
-| {cart: <{direction: <='>'>}>, rail: <='/'>}
-| {cart: <{direction: <='<'>}>, rail: <='\'>}
-| {cart: <{turn: <straight>, direction: <='^'>}>, rail: <='+'>}
-| {cart: <{turn: <left>, direction: <='>'>}>, rail: <='+'>}
-| {cart: <{turn: <right>, direction: <='<'>}>, rail: <='+'>}
->
-
-data movingDown <{cart: <{direction: <='<'>}>, rail: <='/'>}
-| {cart: <{direction: <='>'>}>, rail: <='\'>}
-| {cart: <{direction: <='v'>}>, rail: <='|'>}
-| {cart: <{turn: <left>, direction: <='<'>}>, rail: <='+'>}
-| {cart: <{turn: <right>, direction: <='>'>}>, rail: <='+'>}
-| {cart: <{turn: <straight>, direction: <='v'>}>, rail: <='+'>}
->
-
 // part 1
 templates firstCrash
   @: $;
   [$@ -> \[i;j](<{cart:<>}> [$i,$j] !\)... ...] -> #
   when <[<[](3)>]> do $... -> \(<[](3)> $! \) !
+  when <=[]> !VOID
   otherwise [$... -> \(
     def i: $(1);
     def j: $(2);
     templates nextTurnChoice
-      when <?($@firstCrash($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!
+      when <?($@firstCrash($i;$j) <{rail: <='+'>}>)> do $::raw mod 3 + 1 ! otherwise $!
     end nextTurnChoice
     $@firstCrash($i; $j) -> #
     when <movingRight> do
@@ -100,7 +103,7 @@ templates lastCart
     def i: $(1);
     def j: $(2);
     templates nextTurnChoice
-      when <?($@lastCart($i;$j) <{rail: <='+'>}>)> do $ mod 3 + 1 ! otherwise $!
+      when <?($@lastCart($i;$j) <{rail: <='+'>}>)> do $::raw mod 3 + 1 ! otherwise $!
     end nextTurnChoice
     $@lastCart($i; $j) -> #
     when <movingRight> do
