@@ -1,0 +1,127 @@
+composer vein
+  data x, y local
+  { <coord> (<=', '>) <coord>}
+  rule coord: <'x|y'>: (<='='>) [<INT> <range>?]
+  rule range: (<='..'>) <INT>
+end vein
+
+def veins: [$IN::lines -> vein -> $({x: [§.x... -> ($)"x"], y: [§.y... -> ($)"y"], type: '#'})];
+
+def well: {h: 500"x", v: 0"y"};
+
+def bounds: $veins -> \(
+  @: {left: $well.h, right: $well.h, top: -1"y", bottom: $well.v};
+  $({left: (§.x(first))"x", right: (§.x(last))"x", top: (§.y(first))"y", bottom: (§.y(last))"y"}) ... ... -> $::value -> #
+  $@!
+  when <"x"?($ <..$@.left>)> do @.left: $;
+  when <"x"?($ <$@.right..>)> do @.right: $;
+  when <"y"?($@.top <..~0"y">)> do @.top: $;
+  when <"y"?($ <..$@.top>)> do @.top: $;
+  when <"y"?($ <$@.bottom..>)> do @.bottom: $;
+\);
+
+//$bounds -> !OUT::write
+
+operator (a intersect b)
+  [$a(first) -> \(<..$b(first)> $b(first)! <> $a(first)!\),
+    $a(last) -> \(<..$b(last)> $a(last)! <> $b(last)!\)] !
+end intersect
+
+operator (a merge b)
+  when <?($a(last)+1 <..~$b(first)>)> do $a! $b!
+  when <?($b(last)+1 <..~$a(first)>)> do $b! $a!
+  otherwise
+    [$a(first) -> \(<..$b(first)> $! otherwise $b(first)!\),
+      $a(last) -> \(<..$b(last)> $b(last)! otherwise $!\)] !
+end merge
+
+operator (a merge_into as)
+  @: $a;
+  [$as... -> \([($ merge $@merge_into)] -> #
+    when <[](2)> $(1) ! @merge_into: $(2);
+    otherwise @merge_into: $(1);
+  \), $@merge_into] !
+end merge_into
+
+templates water
+  @: $;
+  templates vertical
+    templates seep_down
+      @: $({x:, y: [§.y(first), $bounds.bottom], type:'.'});
+      $@water... -> #
+      $@ !
+      when <?($@.x(first) <$.x(first)..$.x(last)>)?($.y(first) <$@.y(first)..$@.y(last)>)> do
+        @.y(last): $.y(first) - 1"y";
+        @.type: $.type;
+    end seep_down
+
+    $ -> seep_down -> #
+    when <{type: <='|'>}|?($.y(last) <$bounds.bottom..>)> do
+      ..|@water: {$..., type: '|'};
+    when <?($.y(last) <$.y(first)~..>)> do
+      {x: [$.x(first)], y: $.y} !
+  end vertical
+
+  templates horizontal
+    def drip: $;
+    templates spread
+      @: {x: [$bounds.left-1"x", 10000"x"], y: [$.y(last)], edges:['.','.']};
+      $@water... -> \(
+        when <?($@spread.y(first) <$.y(first)..$.y(last)>)?($.x(first) <$@spread.x(first)..$drip.x(first)>)> do
+          @spread.x(first): $.x(first)+1"x"; @spread.edges(first): $.type;
+      \) -> !VOID
+      $@water... -> \(
+        when <?($@spread.y(first) <$.y(first)..$.y(last)>)?($.x(last) <$drip.x(last)..$@spread.x(last)>)> do
+          @spread.x(last): $.x(last)-1"x"; @spread.edges(last): $.type;
+      \) -> !VOID
+      $ -> \(
+        def floorY: $.y(last)+1"y";
+        @: [[$.x(first)]];
+        $@water... -> #
+        $@... -> \(<?($drip.x(first) <$(first)..$(last)>)> $!\) !
+        when <{type: <~='|'>}?($floorY <=$.y(first)>)> do
+          @: ($.x merge_into $@);
+      \) -> {$@..., floor: $} !
+    end spread
+    $ -> spread -> #
+    $drip !
+
+    when <?($.x(first) <$.floor(first)..>)?($.x(last) <..$.floor(last)>)> do
+      ..|@water: {x: $.x, y: $.y, type: $.edges -> \(when <[<='|'>]> do '|'! otherwise '~' !\)};
+    otherwise
+      $ -> \(<?($.x(first) <..~$.floor(first)-1"x">)> $!\) -> {x: [$.floor(first)-1"x"], y: $.y} !
+      $ -> \(<?($.x(last) <$.floor(last)+1"x"~..>)> $!\) -> {x: [$.floor(last)+1"x"], y: $.y} !
+  end horizontal
+
+  {x: [$well.h], y: [$well.v]} -> #
+  $@ !
+
+  when <> do
+    $ -> vertical -> horizontal -> #
+end water
+
+templates count_water&{types:}
+  @: 0"w";
+  $... -> #
+  $@!
+  when <?($.y(first) <..~$bounds.top>)> do {$..., y: [$bounds.top, $.y(last)]} -> #
+  when <?($types <[<=$.type>]>)> do @: $@ + (($.x(last) - $.x(first) + 1) * ($.y(last) - $.y(first) + 1))"w";
+end count_water
+
+// part 1
+def reaching: $veins -> water;
+'$reaching -> count_water&{types: ['~', '|']};
+' -> !OUT::write
+
+source map
+  @: [1"y"..$bounds.bottom+1"y" -> [$bounds.left-1"x"..$bounds.right+1"x" -> '.']];
+  $reaching... -> @map($.y(first)+1"y"..$.y(last)+1"y"; $.x(first)-$bounds.left+2"x"..$.x(last)-$bounds.left+2"x"):
+    $ -> \(def type: $.type; 1"1"..(($.y(last)-$.y(first)+1)*($.x(last)-$.x(first)+1))"1" -> $type !\);
+  $@!
+end map
+
+//'$map -> $(99..200)... -> '$...;$#10;';' -> !OUT::write
+
+// part 2
+'$reaching -> count_water&{types: ['~']};
+' -> !OUT::write
