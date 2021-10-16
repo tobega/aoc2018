@@ -1,0 +1,79 @@
+include 'lib/hash'
+
+def scan: [$IN::lines -> [$...]];
+
+templates count_tiles
+  @: {open: 0"1", trees: 0"1", lumberyards: 0"1"};
+  $... ... -> #
+  $@ !
+  <='.'> @.open: $@.open + 1;
+  <='|'> @.trees: $@.trees + 1;
+  <='#'> @.lumberyards: $@.lumberyards + 1;
+end count_tiles
+
+templates evolve
+  def start: $;
+  $ -> \[i;j](
+    when <='.' ?($start($i-1..$i+1; $j-1..$j+1) -> count_tiles <{trees: <3..>}>)> '|' !
+    when <='|' ?($start($i-1..$i+1; $j-1..$j+1) -> count_tiles <{lumberyards: <3..>}>)> '#' !
+    when <='#' ?($start($i-1..$i+1; $j-1..$j+1) -> count_tiles <{trees: <=0>}|{lumberyards: <=1>}>)> '.' !
+    otherwise $!
+  \) !
+end evolve
+
+templates resource_after
+  @: $scan;
+  $ -> #
+  when <=0> do $@ -> count_tiles -> $.trees * $.lumberyards !
+  otherwise
+    @: $@ -> evolve;
+    $-1 -> #
+end resource_after
+
+test 'example'
+  modify program
+    def scan: [['.#.#...|#.',
+      '.....#|##|',
+      '.|..|...#.',
+      '..|#.....#',
+      '#.#|||#|#|',
+      '...#.||...',
+      '.|....|...',
+      '||...#|.#|',
+      '|.||||..|.',
+      '...#.|..|.']... -> [$...]];
+  end program
+  assert 0 -> resource_after <=17*27> 'counts 0'
+  assert 1 -> resource_after <=12*40> 'counts 1'
+  assert 10 -> resource_after <=1147> 'counts resource'
+end 'example'
+
+// part 1
+10 -> resource_after -> '$;
+' -> !OUT::write
+
+// part 2
+templates find_cycle
+  def steps: [] -> hash/Map&{key: :(map:), value: :(step:)};
+  @: {map: $, step: 0"1"};
+  [$@ -> steps::put] -> #
+  when <=[]> do
+    @: {map: $@.map -> evolve, step: $@.step + 1};
+    [$@ -> steps::put] -> #
+  otherwise
+    {lead: $(1).step, cycle: $@.step - $(1).step, steps: $steps} !
+    $(1) -> steps::put -> !VOID
+end find_cycle
+
+def repetition: $scan -> find_cycle;
+
+'$repetition;
+' -> !OUT::write
+
+//part2
+((1000000000 - $repetition.lead) mod $repetition.cycle) + $repetition.lead -> \(
+  def step_id: $;
+  $repetition.steps::entries -> #
+  when <{step: <=$step_id>}> do
+    $.map !
+\) -> count_tiles -> $.trees * $.lumberyards -> !OUT::write
